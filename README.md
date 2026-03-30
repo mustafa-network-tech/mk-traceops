@@ -1,36 +1,79 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# mk-traceops
 
-## Getting Started
+**Malzemenin üretimdeki yolculuğu** — Excel aktarımından sevkiyata kadar iç operasyon paneli (Next.js, mock veri; Supabase hazır mimari).
 
-First, run the development server:
+## Gereksinimler
+
+- [Node.js](https://nodejs.org/) **20.x** veya üzeri (LTS önerilir)
+- npm (Node ile birlikte gelir)
+
+## Kurulum
+
+```bash
+git clone <repo-url> mk-traceops
+cd mk-traceops
+npm ci
+```
+
+Geliştirme sunucusu:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Uygulama: [http://localhost:3000](http://localhost:3000) (otomatik yönlendirme: `/kokpit`).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Ortam değişkenleri
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Şu an uygulama **mock repository** ile çalışır; `.env.local` zorunlu değildir.
 
-## Learn More
+İleride Supabase bağlarken:
 
-To learn more about Next.js, take a look at the following resources:
+1. Depodaki `.env.example` dosyasını referans alın.
+2. Proje kökünde `.env.local` oluşturun (bu dosya Git’e **eklenmez**).
+3. `NEXT_PUBLIC_SUPABASE_URL` ve `NEXT_PUBLIC_SUPABASE_ANON_KEY` değerlerini doldurun.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+cp .env.example .env.local
+# .env.local içini düzenleyin
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Komutlar
 
-## Deploy on Vercel
+| Komut           | Açıklama              |
+|-----------------|------------------------|
+| `npm run dev`   | Geliştirme sunucusu    |
+| `npm run build` | Production derlemesi   |
+| `npm run start` | Production sunucusu    |
+| `npm run lint`  | ESLint                 |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## GitHub’a bağlama
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. GitHub’da yeni bir **boş repo** oluşturun (README eklemeden de olur).
+2. Yerelde remote ekleyin ve ilk push:
+
+```bash
+git remote add origin https://github.com/KULLANICI/REPO_ADI.git
+git branch -M main
+git add .
+git commit -m "Initial commit: mk-traceops"
+git push -u origin main
+```
+
+3. **Actions**: `.github/workflows/ci.yml` her push ve pull request’te `lint` + `build` çalıştırır. Repo public ise ek ayar gerekmez; private’da Actions kullanımı organizasyon ayarlarınıza bağlıdır.
+
+## Repoya eklendikten sonra yapmanız iyi olur
+
+- **Branch koruması** (Settings → Branches): `main` için PR zorunluluğu, CI’nın geçmesi şartı.
+- **Vercel / başka host**: Repo’yu import edin; build komutu `npm run build`, çıktı dizini Next için otomatik algılanır. Gerekirse env değişkenlerini panelden tanımlayın.
+- **Dependabot** (Settings → Code security): güvenlik güncellemeleri için etkinleştirilebilir.
+
+## Mimari not
+
+- `src/lib/data/seed.ts` — mock veri
+- `src/lib/repositories/` — veri erişimi (Supabase adapter ile değiştirilebilir)
+- `src/lib/constants/brand.ts` — uygulama adı ve slogan
+
+## Lisans
+
+Özel proje — lisansı repo sahibi belirler.
