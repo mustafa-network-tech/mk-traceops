@@ -90,6 +90,11 @@ export function mapSupplier(r: Row): Supplier {
   };
 }
 
+function numOrZero(v: unknown): number {
+  const n = typeof v === "number" ? v : Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+
 export function mapMaterial(r: Row): Material {
   return {
     id: r.id as string,
@@ -97,8 +102,8 @@ export function mapMaterial(r: Row): Material {
     name: r.name as string,
     type: r.type as Material["type"],
     unit: r.unit as string,
-    minStock: Number(r.min_stock),
-    currentStock: Number(r.current_stock),
+    minStock: numOrZero(r.min_stock),
+    currentStock: numOrZero(r.current_stock),
     active: Boolean(r.active),
     categoryId: r.category_id as string,
     note: (r.note as string) ?? undefined,

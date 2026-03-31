@@ -78,7 +78,7 @@ export function MaterialTable({ rows, showPartDemand }: MaterialTableProps) {
                 </TableCell>
               ) : null}
               <TableCell className="text-right tabular-nums text-sm">
-                {formatNumber(m.minStock)}
+                {formatNumber(m.minStock, m.unit)}
               </TableCell>
               <TableCell className="text-right">
                 <span
@@ -86,7 +86,7 @@ export function MaterialTable({ rows, showPartDemand }: MaterialTableProps) {
                     critical ? "font-semibold text-red-700 tabular-nums" : "tabular-nums"
                   }
                 >
-                  {formatNumber(m.currentStock)}
+                  {formatNumber(m.currentStock, m.unit)}
                 </span>
                 {critical ? (
                   <Badge className="ml-2" variant="danger">

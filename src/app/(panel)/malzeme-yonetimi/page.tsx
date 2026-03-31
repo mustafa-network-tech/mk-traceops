@@ -29,6 +29,7 @@ export default async function MalzemeYonetimiPage() {
     categoryName: catById.get(m.categoryId)?.name ?? m.categoryId,
     supplierCount: countByMat.get(m.id) ?? 0,
     critical: m.currentStock <= m.minStock,
+    partDemandQty: demandByMat.get(m.id) ?? 0,
   }));
 
   return (
