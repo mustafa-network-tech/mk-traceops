@@ -12,10 +12,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { productRepository } from "@/lib/repositories";
+import { listProducts } from "@/lib/data/supabase-data";
 
-export default function UrunKartlariPage() {
-  const products = productRepository.getAll();
+export default async function UrunKartlariPage() {
+  const products = await listProducts();
 
   return (
     <div>
@@ -30,7 +30,7 @@ export default function UrunKartlariPage() {
 
       <div className="mb-6 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
         <p className="mb-3 text-sm font-medium text-slate-700">
-          Örnek mamul formu (salt okunur alanlar — V1 mock)
+          Örnek mamul formu (salt okunur alanlar — şablon)
         </p>
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           <div className="space-y-1.5">

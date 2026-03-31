@@ -11,12 +11,23 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  materialSupplierRelationRepository,
-  supplierRepository,
-} from "@/lib/repositories";
+  listMaterialSupplierRelations,
+  listSuppliers,
+} from "@/lib/data/supabase-data";
 
-export default function TedarikcilerPage() {
-  const suppliers = supplierRepository.getAll();
+export default async function TedarikcilerPage() {
+  const [suppliers, rels] = await Promise.all([
+    listSuppliers(),
+    listMaterialSupplierRelations(),
+  ]);
+
+  const countBySupplier = new Map<string, number>();
+  for (const r of rels) {
+    countBySupplier.set(
+      r.supplierId,
+      (countBySupplier.get(r.supplierId) ?? 0) + 1,
+    );
+  }
 
   return (
     <div>
@@ -45,8 +56,7 @@ export default function TedarikcilerPage() {
           </TableHeader>
           <TableBody>
             {suppliers.map((s) => {
-              const relCount =
-                materialSupplierRelationRepository.getBySupplierId(s.id).length;
+              const relCount = countBySupplier.get(s.id) ?? 0;
               return (
                 <TableRow key={s.id}>
                   <TableCell className="font-medium">{s.name}</TableCell>

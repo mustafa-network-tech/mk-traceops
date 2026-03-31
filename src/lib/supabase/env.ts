@@ -1,4 +1,4 @@
-/** Ortam değişkenleri eksikse false döner; uygulama mock ile çalışmaya devam edebilir. */
+/** URL + anon key yoksa false; panel verisi Supabase’ten çekilmez (çoğu liste boş kalır). */
 export function isSupabaseConfigured(): boolean {
   return Boolean(
     process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() &&

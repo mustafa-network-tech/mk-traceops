@@ -1,19 +1,31 @@
 import { PageHeader } from "@/components/layout/page-header";
 import { MaterialTable } from "@/components/features/material-table";
 import {
-  materialCategoryRepository,
-  materialRepository,
-  materialSupplierRelationRepository,
-} from "@/lib/repositories";
+  listMaterialCategories,
+  listMaterialSupplierRelations,
+  listMaterials,
+} from "@/lib/data/supabase-data";
 
-export default function MalzemeYonetimiPage() {
-  const materials = materialRepository.getAll();
+export default async function MalzemeYonetimiPage() {
+  const [materials, categories, rels] = await Promise.all([
+    listMaterials(),
+    listMaterialCategories(),
+    listMaterialSupplierRelations(),
+  ]);
+
+  const catById = new Map(categories.map((c) => [c.id, c]));
+  const countByMat = new Map<string, number>();
+  for (const r of rels) {
+    countByMat.set(
+      r.materialId,
+      (countByMat.get(r.materialId) ?? 0) + 1,
+    );
+  }
+
   const rows = materials.map((m) => ({
     material: m,
-    categoryName:
-      materialCategoryRepository.getById(m.categoryId)?.name ?? m.categoryId,
-    supplierCount: materialSupplierRelationRepository.getByMaterialId(m.id)
-      .length,
+    categoryName: catById.get(m.categoryId)?.name ?? m.categoryId,
+    supplierCount: countByMat.get(m.id) ?? 0,
     critical: m.currentStock <= m.minStock,
   }));
 

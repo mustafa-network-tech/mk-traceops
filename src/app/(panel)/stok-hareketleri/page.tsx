@@ -1,19 +1,29 @@
 import { StockMovementFilters } from "@/components/features/stock-movement-filters";
 import {
-  assemblyGroupRepository,
-  locationRepository,
-  materialRepository,
-  stockMovementRepository,
-} from "@/lib/repositories";
+  listAssemblyGroups,
+  listLocations,
+  listMaterials,
+  listStockMovements,
+} from "@/lib/data/supabase-data";
 
-export default function StokHareketleriPage() {
-  const movements = stockMovementRepository.getAll();
+export default async function StokHareketleriPage() {
+  const [movements, materials, locations, assemblies] = await Promise.all([
+    listStockMovements(),
+    listMaterials(),
+    listLocations(),
+    listAssemblyGroups(),
+  ]);
+
+  const matById = new Map(materials.map((m) => [m.id, m]));
+  const locById = new Map(locations.map((l) => [l.id, l]));
+  const agById = new Map(assemblies.map((a) => [a.id, a]));
+
   const rows = movements.map((movement) => ({
     movement,
-    material: materialRepository.getById(movement.materialId),
-    location: locationRepository.getById(movement.locationId),
+    material: matById.get(movement.materialId),
+    location: locById.get(movement.locationId),
     assembly: movement.assemblyGroupId
-      ? assemblyGroupRepository.getById(movement.assemblyGroupId)
+      ? agById.get(movement.assemblyGroupId)
       : undefined,
   }));
 

@@ -14,33 +14,42 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { getImportBatchById } from "@/lib/data/import-queries";
 import {
-  assemblyGroupRepository,
-  companyRepository,
-  materialRepository,
-  partRepository,
-  productionOrderRepository,
-} from "@/lib/repositories";
+  getAssemblyGroup,
+  listCompanies,
+  listMaterials,
+  listPartsByAssemblyGroupId,
+  listProductionOrders,
+} from "@/lib/data/supabase-data";
 
 type Props = { params: Promise<{ id: string }> };
 
 export default async function MontajGrupDetayPage({ params }: Props) {
   const { id } = await params;
-  const g = assemblyGroupRepository.getById(id);
+  const g = await getAssemblyGroup(id);
   if (!g) notFound();
 
-  const parts = partRepository.getByAssemblyGroupId(id);
+  const [parts, materials, companies, allOrders] = await Promise.all([
+    listPartsByAssemblyGroupId(id),
+    listMaterials(),
+    listCompanies(),
+    listProductionOrders(),
+  ]);
+
+  const matById = new Map(materials.map((m) => [m.id, m]));
+  const compById = new Map(companies.map((c) => [c.id, c]));
+  const orders = allOrders.filter((o) => o.assemblyGroupId === id);
+
   const batch = g.importBatchId
     ? await getImportBatchById(g.importBatchId)
     : undefined;
-  const orders = productionOrderRepository
-    .getAll()
-    .filter((o) => o.assemblyGroupId === id);
 
   return (
     <div>
       <PageHeader
         title={`${g.code} — ${g.name}`}
-        description={g.notes ?? "Montaj grubuna bağlı parçalar ve ilgili üretim emirleri."}
+        description={
+          g.notes ?? "Montaj grubuna bağlı parçalar ve ilgili üretim emirleri."
+        }
         breadcrumbs={[
           { label: "Kokpit", href: "/kokpit" },
           { label: "Montaj grupları", href: "/montaj-grup-takibi" },
@@ -78,9 +87,7 @@ export default async function MontajGrupDetayPage({ params }: Props) {
             <CardTitle className="text-sm">İlgili üretim emri</CardTitle>
           </CardHeader>
           <CardContent className="text-sm">
-            {orders.length
-              ? orders.map((o) => o.orderNo).join(", ")
-              : "—"}
+            {orders.length ? orders.map((o) => o.orderNo).join(", ") : "—"}
           </CardContent>
         </Card>
       </div>
@@ -103,11 +110,9 @@ export default async function MontajGrupDetayPage({ params }: Props) {
             </TableHeader>
             <TableBody>
               {parts.map((p) => {
-                const m = p.materialId
-                  ? materialRepository.getById(p.materialId)
-                  : undefined;
+                const m = p.materialId ? matById.get(p.materialId) : undefined;
                 const c = p.assignedCompanyId
-                  ? companyRepository.getById(p.assignedCompanyId)
+                  ? compById.get(p.assignedCompanyId)
                   : undefined;
                 return (
                   <TableRow key={p.id}>

@@ -8,12 +8,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatCurrency, formatDate } from "@/lib/format";
 import {
-  materialRepository,
-  materialSupplierRelationRepository,
-  supplierRepository,
-} from "@/lib/repositories";
+  getMaterial,
+  listMaterialSupplierRelations,
+  listSuppliers,
+} from "@/lib/data/supabase-data";
+import { formatCurrency, formatDate } from "@/lib/format";
 
 type Props = {
   searchParams: Promise<{ malzeme?: string }>;
@@ -22,9 +22,22 @@ type Props = {
 export default async function MalzemeTedarikciPage({ searchParams }: Props) {
   const sp = await searchParams;
   const filterMaterialId = sp.malzeme;
-  const rels = materialSupplierRelationRepository
-    .getAll()
-    .filter((r) => !filterMaterialId || r.materialId === filterMaterialId);
+  const allRels = await listMaterialSupplierRelations();
+  const rels = allRels.filter(
+    (r) => !filterMaterialId || r.materialId === filterMaterialId,
+  );
+
+  const [materials, suppliers] = await Promise.all([
+    Promise.all([...new Set(rels.map((r) => r.materialId))].map(getMaterial)),
+    listSuppliers(),
+  ]);
+
+  const matById = new Map(materials.filter(Boolean).map((m) => [m!.id, m!]));
+  const supById = new Map(suppliers.map((s) => [s.id, s]));
+
+  const filterMaterial = filterMaterialId
+    ? await getMaterial(filterMaterialId)
+    : undefined;
 
   return (
     <div>
@@ -41,7 +54,7 @@ export default async function MalzemeTedarikciPage({ searchParams }: Props) {
         <p className="mb-3 text-sm text-slate-600">
           Filtre:{" "}
           <strong>
-            {materialRepository.getById(filterMaterialId)?.code ?? filterMaterialId}
+            {filterMaterial?.code ?? filterMaterialId}
           </strong>{" "}
           — tüm malzemeler için filtreyi kaldırın: URL parametresini silin.
         </p>
@@ -61,8 +74,8 @@ export default async function MalzemeTedarikciPage({ searchParams }: Props) {
           </TableHeader>
           <TableBody>
             {rels.map((r) => {
-              const m = materialRepository.getById(r.materialId);
-              const s = supplierRepository.getById(r.supplierId);
+              const m = matById.get(r.materialId);
+              const s = supById.get(r.supplierId);
               return (
                 <TableRow key={r.id}>
                   <TableCell>

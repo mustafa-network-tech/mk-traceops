@@ -45,7 +45,7 @@ export function AppSidebar() {
       </ScrollArea>
       <Separator className="bg-slate-800" />
       <div className="p-3 text-xs text-slate-500">
-        {brand.slogan} · V1 · Mock veri
+        {brand.slogan} · v1 · Supabase
       </div>
     </aside>
   );

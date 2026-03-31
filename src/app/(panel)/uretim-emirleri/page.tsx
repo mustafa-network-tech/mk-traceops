@@ -11,16 +11,25 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatDate } from "@/lib/format";
 import {
-  assemblyGroupRepository,
-  departmentRepository,
-  productRepository,
-  productionOrderRepository,
-} from "@/lib/repositories";
+  listAssemblyGroups,
+  listDepartments,
+  listProducts,
+  listProductionOrders,
+} from "@/lib/data/supabase-data";
+import { formatDate } from "@/lib/format";
 
-export default function UretimEmirleriPage() {
-  const orders = productionOrderRepository.getAll();
+export default async function UretimEmirleriPage() {
+  const [orders, products, assemblies, departments] = await Promise.all([
+    listProductionOrders(),
+    listProducts(),
+    listAssemblyGroups(),
+    listDepartments(),
+  ]);
+
+  const prodById = new Map(products.map((p) => [p.id, p]));
+  const agById = new Map(assemblies.map((a) => [a.id, a]));
+  const depById = new Map(departments.map((d) => [d.id, d]));
 
   return (
     <div>
@@ -50,11 +59,11 @@ export default function UretimEmirleriPage() {
           </TableHeader>
           <TableBody>
             {orders.map((o) => {
-              const prod = productRepository.getById(o.productId);
+              const prod = prodById.get(o.productId);
               const ag = o.assemblyGroupId
-                ? assemblyGroupRepository.getById(o.assemblyGroupId)
+                ? agById.get(o.assemblyGroupId)
                 : undefined;
-              const dep = departmentRepository.getById(o.departmentId);
+              const dep = depById.get(o.departmentId);
               return (
                 <TableRow key={o.id}>
                   <TableCell className="font-mono text-xs font-semibold">

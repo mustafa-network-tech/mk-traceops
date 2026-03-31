@@ -10,12 +10,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatDateTime, formatNumber } from "@/lib/format";
 import {
-  locationRepository,
-  materialRepository,
-  supplierRepository,
-} from "@/lib/repositories";
+  listLocations,
+  listMaterials,
+  listSuppliers,
+} from "@/lib/data/supabase-data";
+import { formatDateTime, formatNumber } from "@/lib/format";
 import {
   getDashboardMetrics,
   getProductionTrend,
@@ -23,11 +23,21 @@ import {
   getStockMixChart,
 } from "@/lib/services/dashboardService";
 
-export default function KokpitPage() {
-  const m = getDashboardMetrics();
-  const recent = getRecentStockMovements();
-  const trend = getProductionTrend();
-  const mix = getStockMixChart();
+export default async function KokpitPage() {
+  const [m, recent, trend, mix, materials, locations, suppliers] =
+    await Promise.all([
+      getDashboardMetrics(),
+      getRecentStockMovements(),
+      Promise.resolve(getProductionTrend()),
+      Promise.resolve(getStockMixChart()),
+      listMaterials(),
+      listLocations(),
+      listSuppliers(),
+    ]);
+
+  const matById = new Map(materials.map((x) => [x.id, x]));
+  const locById = new Map(locations.map((x) => [x.id, x]));
+  const supById = new Map(suppliers.map((x) => [x.id, x]));
 
   const metrics = [
     { label: "Toplam parça kaydı", value: m.totalParts },
@@ -46,7 +56,7 @@ export default function KokpitPage() {
     <div>
       <PageHeader
         title="Kokpit"
-        description="Operasyon akışının özeti: Excel aktarımından sevkiyata kadar tüm modüllerle uyumlu mock metrikler."
+        description="Operasyon akışının özeti: Excel aktarımından sevkiyata kadar modüllerle uyumlu metrikler (Supabase)."
       />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
@@ -88,8 +98,8 @@ export default function KokpitPage() {
             </TableHeader>
             <TableBody>
               {recent.map((s) => {
-                const mat = materialRepository.getById(s.materialId);
-                const loc = locationRepository.getById(s.locationId);
+                const mat = matById.get(s.materialId);
+                const loc = locById.get(s.locationId);
                 return (
                   <TableRow key={s.id}>
                     <TableCell className="whitespace-nowrap text-xs">
@@ -108,7 +118,7 @@ export default function KokpitPage() {
                     <TableCell className="max-w-[200px] truncate text-xs text-slate-600">
                       {s.note ??
                         (s.supplierId
-                          ? `Tedarikçi: ${supplierRepository.getById(s.supplierId)?.name ?? s.supplierId}`
+                          ? `Tedarikçi: ${supById.get(s.supplierId)?.name ?? s.supplierId}`
                           : "—")}
                     </TableCell>
                   </TableRow>

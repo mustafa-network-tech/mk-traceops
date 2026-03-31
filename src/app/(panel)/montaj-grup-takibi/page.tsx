@@ -11,13 +11,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { getImportBatchById } from "@/lib/data/import-queries";
-import { assemblyGroupRepository } from "@/lib/repositories";
+import { listAssemblyGroups } from "@/lib/data/supabase-data";
 import type { ImportBatch } from "@/lib/types/models";
 
 export const dynamic = "force-dynamic";
 
 export default async function MontajGrupTakibiPage() {
-  const groups = assemblyGroupRepository.getAll();
+  const groups = await listAssemblyGroups();
   const batchIds = [
     ...new Set(
       groups
@@ -27,9 +27,9 @@ export default async function MontajGrupTakibiPage() {
   ];
   const batchById = new Map<string, ImportBatch>();
   await Promise.all(
-    batchIds.map(async (id) => {
-      const b = await getImportBatchById(id);
-      if (b) batchById.set(id, b);
+    batchIds.map(async (bid) => {
+      const b = await getImportBatchById(bid);
+      if (b) batchById.set(bid, b);
     }),
   );
 

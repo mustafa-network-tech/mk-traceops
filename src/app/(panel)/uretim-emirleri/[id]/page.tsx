@@ -13,29 +13,36 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { formatDate, formatNumber } from "@/lib/format";
 import {
-  assemblyGroupRepository,
-  departmentRepository,
-  materialRepository,
-  productRepository,
-  productionOrderLineRepository,
-  productionOrderRepository,
-} from "@/lib/repositories";
+  getAssemblyGroup,
+  getDepartment,
+  getMaterial,
+  getProduct,
+  getProductionOrder,
+  getProductionOrderLines,
+} from "@/lib/data/supabase-data";
+import { formatDate, formatNumber } from "@/lib/format";
 
 type Props = { params: Promise<{ id: string }> };
 
 export default async function UretimEmriDetayPage({ params }: Props) {
   const { id } = await params;
-  const order = productionOrderRepository.getById(id);
+  const order = await getProductionOrder(id);
   if (!order) notFound();
 
-  const lines = productionOrderLineRepository.getByProductionOrderId(id);
-  const product = productRepository.getById(order.productId);
-  const ag = order.assemblyGroupId
-    ? assemblyGroupRepository.getById(order.assemblyGroupId)
-    : undefined;
-  const dep = departmentRepository.getById(order.departmentId);
+  const [lines, product, ag, dep] = await Promise.all([
+    getProductionOrderLines(id),
+    getProduct(order.productId),
+    order.assemblyGroupId
+      ? getAssemblyGroup(order.assemblyGroupId)
+      : Promise.resolve(undefined),
+    getDepartment(order.departmentId),
+  ]);
+
+  const materials = await Promise.all(
+    lines.map((l) => getMaterial(l.materialId)),
+  );
+  const matByLineId = new Map(lines.map((l, i) => [l.id, materials[i]]));
 
   return (
     <div>
@@ -112,7 +119,7 @@ export default async function UretimEmriDetayPage({ params }: Props) {
             </TableHeader>
             <TableBody>
               {lines.map((l) => {
-                const m = materialRepository.getById(l.materialId);
+                const m = matByLineId.get(l.id);
                 return (
                   <TableRow key={l.id}>
                     <TableCell>

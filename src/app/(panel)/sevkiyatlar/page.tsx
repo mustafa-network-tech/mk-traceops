@@ -11,11 +11,27 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  listProducts,
+  listShipmentItems,
+  listShipments,
+} from "@/lib/data/supabase-data";
 import { formatDateTime } from "@/lib/format";
-import { productRepository, shipmentRepository } from "@/lib/repositories";
 
-export default function SevkiyatlarPage() {
-  const list = shipmentRepository.getAll();
+export default async function SevkiyatlarPage() {
+  const [list, allItems, products] = await Promise.all([
+    listShipments(),
+    listShipmentItems(),
+    listProducts(),
+  ]);
+
+  const prodById = new Map(products.map((p) => [p.id, p]));
+  const itemsByShipment = new Map<string, typeof allItems>();
+  for (const i of allItems) {
+    const cur = itemsByShipment.get(i.shipmentId) ?? [];
+    cur.push(i);
+    itemsByShipment.set(i.shipmentId, cur);
+  }
 
   return (
     <div>
@@ -43,10 +59,10 @@ export default function SevkiyatlarPage() {
           </TableHeader>
           <TableBody>
             {list.map((sh) => {
-              const items = shipmentRepository.getItems(sh.id);
+              const items = itemsByShipment.get(sh.id) ?? [];
               const summary = items
                 .map((i) => {
-                  const p = productRepository.getById(i.productId);
+                  const p = prodById.get(i.productId);
                   return `${p?.code ?? "?"} × ${i.quantity}`;
                 })
                 .join(", ");

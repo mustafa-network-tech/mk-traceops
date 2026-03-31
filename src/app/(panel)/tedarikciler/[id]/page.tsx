@@ -13,21 +13,23 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { formatCurrency, formatDate } from "@/lib/format";
 import {
-  materialRepository,
-  materialSupplierRelationRepository,
-  supplierRepository,
-} from "@/lib/repositories";
+  getMaterial,
+  getSupplier,
+  relationsBySupplierId,
+} from "@/lib/data/supabase-data";
+import { formatCurrency, formatDate } from "@/lib/format";
 
 type Props = { params: Promise<{ id: string }> };
 
 export default async function TedarikciDetayPage({ params }: Props) {
   const { id } = await params;
-  const s = supplierRepository.getById(id);
+  const s = await getSupplier(id);
   if (!s) notFound();
 
-  const rels = materialSupplierRelationRepository.getBySupplierId(id);
+  const rels = await relationsBySupplierId(id);
+  const materials = await Promise.all(rels.map((r) => getMaterial(r.materialId)));
+  const matByRelId = new Map(rels.map((r, i) => [r.id, materials[i]]));
 
   return (
     <div>
@@ -90,7 +92,7 @@ export default async function TedarikciDetayPage({ params }: Props) {
             </TableHeader>
             <TableBody>
               {rels.map((r) => {
-                const m = materialRepository.getById(r.materialId);
+                const m = matByRelId.get(r.id);
                 return (
                   <TableRow key={r.id}>
                     <TableCell>

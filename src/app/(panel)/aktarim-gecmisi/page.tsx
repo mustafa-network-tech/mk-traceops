@@ -12,13 +12,23 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { listImportBatches } from "@/lib/data/import-queries";
+import { getUser } from "@/lib/data/supabase-data";
 import { formatDateTime } from "@/lib/format";
-import { userRepository } from "@/lib/repositories";
 
 export const dynamic = "force-dynamic";
 
 export default async function AktarimGecmisiPage() {
   const batches = await listImportBatches();
+
+  const uploaderIds = [
+    ...new Set(
+      batches
+        .map((b) => b.uploadedByUserId)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  const users = await Promise.all(uploaderIds.map((uid) => getUser(uid)));
+  const userById = new Map(users.filter(Boolean).map((u) => [u!.id, u!]));
 
   return (
     <div>
@@ -58,13 +68,13 @@ export default async function AktarimGecmisiPage() {
                   <Link href="/excel-aktarim" className="font-medium text-slate-800 underline">
                     Excel aktarımından
                   </Link>{" "}
-                  yükleyin. (Liste yalnızca Supabase&apos;e bağlıyken dolar; mock veri kaldırıldı.)
+                  yükleyin.
                 </TableCell>
               </TableRow>
             ) : null}
             {batches.map((b) => {
               const u = b.uploadedByUserId
-                ? userRepository.getById(b.uploadedByUserId)
+                ? userById.get(b.uploadedByUserId)
                 : undefined;
               const uploaderLabel =
                 u?.fullName ??

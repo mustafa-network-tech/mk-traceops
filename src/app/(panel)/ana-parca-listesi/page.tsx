@@ -1,23 +1,31 @@
 import { PartListWithFilters } from "@/components/features/part-list-with-filters";
 import {
-  assemblyGroupRepository,
-  companyRepository,
-  materialRepository,
-  partRepository,
-} from "@/lib/repositories";
+  listAssemblyGroups,
+  listCompanies,
+  listMaterials,
+  listParts,
+} from "@/lib/data/supabase-data";
 
-export default function AnaParcaListesiPage() {
-  const parts = partRepository.getAll();
+export default async function AnaParcaListesiPage() {
+  const [parts, materials, companies, assemblies] = await Promise.all([
+    listParts(),
+    listMaterials(),
+    listCompanies(),
+    listAssemblyGroups(),
+  ]);
+
+  const matById = new Map(materials.map((m) => [m.id, m]));
+  const compById = new Map(companies.map((c) => [c.id, c]));
+  const agById = new Map(assemblies.map((a) => [a.id, a]));
+
   const rows = parts.map((part) => ({
     part,
-    material: part.materialId
-      ? materialRepository.getById(part.materialId)
-      : undefined,
+    material: part.materialId ? matById.get(part.materialId) : undefined,
     company: part.assignedCompanyId
-      ? companyRepository.getById(part.assignedCompanyId)
+      ? compById.get(part.assignedCompanyId)
       : undefined,
     assembly: part.assemblyGroupId
-      ? assemblyGroupRepository.getById(part.assemblyGroupId)
+      ? agById.get(part.assemblyGroupId)
       : undefined,
   }));
 

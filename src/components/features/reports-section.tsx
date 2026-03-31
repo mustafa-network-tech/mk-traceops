@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   ProductionStatusBadge,
@@ -28,25 +28,30 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { loadReportsBundle, type ReportsBundle } from "@/app/actions/reports";
 import { formatCurrency, formatDate, formatDateTime, formatNumber } from "@/lib/format";
-import {
-  assemblyGroupRepository,
-  materialRepository,
-  productRepository,
-  supplierRepository,
-} from "@/lib/repositories";
-import type { ReportFilter } from "@/lib/types/models";
-import {
-  getMaterialUsageReportRows,
-  getProductStockReportRows,
-  getProductionReportRows,
-  getRecurringJobsReportRows,
-  getShipmentReportRows,
-  getStockMovementReportRows,
-  getSupplierPriceReportRows,
-} from "@/lib/services/reportingService";
+import type {
+  AssemblyGroup,
+  Material,
+  Product,
+  ProductionOrder,
+  ReportFilter,
+  Supplier,
+} from "@/lib/types/models";
 
-export function ReportsSection() {
+export type ReportsSectionProps = {
+  materials: Material[];
+  suppliers: Supplier[];
+  products: Product[];
+  assemblies: AssemblyGroup[];
+};
+
+export function ReportsSection({
+  materials,
+  suppliers,
+  products,
+  assemblies,
+}: ReportsSectionProps) {
   const [tab, setTab] = useState("stok");
   const [dateFrom, setDateFrom] = useState("2026-03-01");
   const [dateTo, setDateTo] = useState("2026-03-30");
@@ -80,10 +85,29 @@ export function ReportsSection() {
     assemblyId,
   ]);
 
-  const materials = materialRepository.getAll();
-  const suppliers = supplierRepository.getAll();
-  const products = productRepository.getAll();
-  const assemblies = assemblyGroupRepository.getAll();
+  const [bundle, setBundle] = useState<ReportsBundle | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoadError(null);
+    loadReportsBundle(baseFilter)
+      .then((b) => {
+        if (!cancelled) setBundle(b);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setLoadError(
+            err instanceof Error ? err.message : "Rapor verisi yüklenemedi.",
+          );
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [baseFilter]);
+
+  const b = bundle;
 
   return (
     <div>
@@ -218,6 +242,13 @@ export function ReportsSection() {
         </CardContent>
       </Card>
 
+      {loadError ? (
+        <p className="mb-3 text-sm text-red-600">{loadError}</p>
+      ) : null}
+      {b === null && !loadError ? (
+        <p className="mb-3 text-sm text-slate-600">Rapor verileri yükleniyor…</p>
+      ) : null}
+
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="flex h-auto min-h-9 w-full flex-wrap justify-start gap-1">
           <TabsTrigger value="stok">Stok hareket</TabsTrigger>
@@ -241,7 +272,7 @@ export function ReportsSection() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {getStockMovementReportRows(baseFilter).map(({ movement, material }) => (
+                {(b?.stock ?? []).map(({ movement, material }) => (
                   <TableRow key={movement.id}>
                     <TableCell className="text-xs whitespace-nowrap">
                       {formatDateTime(movement.occurredAt)}
@@ -275,7 +306,7 @@ export function ReportsSection() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {getMaterialUsageReportRows(baseFilter).map(
+                {(b?.kullanim ?? []).map(
                   ({ line, material, order, product }) => (
                     <TableRow key={line.id}>
                       <TableCell>
@@ -310,11 +341,13 @@ export function ReportsSection() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {getSupplierPriceReportRows()
+                {(b?.fiyat ?? [])
                   .filter(
                     (r) =>
-                      (materialId === "all" || r.relation.materialId === materialId) &&
-                      (supplierId === "all" || r.relation.supplierId === supplierId),
+                      (materialId === "all" ||
+                        r.relation.materialId === materialId) &&
+                      (supplierId === "all" ||
+                        r.relation.supplierId === supplierId),
                   )
                   .map(({ relation, material, supplier }) => (
                     <TableRow key={relation.id}>
@@ -331,9 +364,14 @@ export function ReportsSection() {
                         )}
                       </TableCell>
                       <TableCell className="text-right font-mono">
-                        {formatCurrency(relation.lastPurchasePrice, relation.currency)}
+                        {formatCurrency(
+                          relation.lastPurchasePrice,
+                          relation.currency,
+                        )}
                       </TableCell>
-                      <TableCell>{formatDate(relation.lastPurchaseDate)}</TableCell>
+                      <TableCell>
+                        {formatDate(relation.lastPurchaseDate)}
+                      </TableCell>
                     </TableRow>
                   ))}
               </TableBody>
@@ -355,24 +393,24 @@ export function ReportsSection() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {getProductionReportRows(baseFilter).map(
-                  ({ order, product, assembly }) => (
-                    <TableRow key={order.id}>
-                      <TableCell className="font-mono text-xs font-semibold">
-                        {order.orderNo}
-                      </TableCell>
-                      <TableCell className="text-sm">{product?.name}</TableCell>
-                      <TableCell className="text-xs">{assembly?.code ?? "—"}</TableCell>
-                      <TableCell>
-                        <ProductionStatusBadge status={order.status} />
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums text-sm">
-                        {order.quantityPlanned} / {order.quantityProduced}
-                      </TableCell>
-                      <TableCell>{formatDate(order.scheduledDate)}</TableCell>
-                    </TableRow>
-                  ),
-                )}
+                {(b?.uretim ?? []).map(({ order, product, assembly }) => (
+                  <TableRow key={order.id}>
+                    <TableCell className="font-mono text-xs font-semibold">
+                      {order.orderNo}
+                    </TableCell>
+                    <TableCell className="text-sm">{product?.name}</TableCell>
+                    <TableCell className="text-xs">
+                      {assembly?.code ?? "—"}
+                    </TableCell>
+                    <TableCell>
+                      <ProductionStatusBadge status={order.status} />
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums text-sm">
+                      {order.quantityPlanned} / {order.quantityProduced}
+                    </TableCell>
+                    <TableCell>{formatDate(order.scheduledDate)}</TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           </ReportCard>
@@ -390,7 +428,7 @@ export function ReportsSection() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {getProductStockReportRows()
+                {(b?.mamul ?? [])
                   .filter(
                     (r) => productId === "all" || r.stock.productId === productId,
                   )
@@ -409,7 +447,7 @@ export function ReportsSection() {
                           : "—"}
                       </TableCell>
                       <TableCell className="text-xs">
-                        {recentOrders.map((o) => o.orderNo).join(", ") || "—"}
+                        {recentOrders.map((o: ProductionOrder) => o.orderNo).join(", ") || "—"}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -431,7 +469,7 @@ export function ReportsSection() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {getShipmentReportRows(baseFilter).map(({ shipment, items }) => (
+                {(b?.sevk ?? []).map(({ shipment, items }) => (
                   <TableRow key={shipment.id}>
                     <TableCell className="font-mono text-xs">
                       {shipment.shipmentNumber}
@@ -439,7 +477,9 @@ export function ReportsSection() {
                     <TableCell className="text-xs whitespace-nowrap">
                       {formatDateTime(shipment.shippedAt)}
                     </TableCell>
-                    <TableCell className="text-sm">{shipment.recipientName}</TableCell>
+                    <TableCell className="text-sm">
+                      {shipment.recipientName}
+                    </TableCell>
                     <TableCell>
                       <ShipmentStatusBadge status={shipment.status} />
                     </TableCell>
@@ -470,7 +510,7 @@ export function ReportsSection() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {getRecurringJobsReportRows().map((r) => (
+                {(b?.tekrar ?? []).map((r) => (
                   <TableRow key={r.partCode}>
                     <TableCell className="font-mono text-xs">{r.partCode}</TableCell>
                     <TableCell>{r.description}</TableCell>

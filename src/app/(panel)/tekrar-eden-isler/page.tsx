@@ -10,8 +10,8 @@ import {
 } from "@/components/ui/table";
 import { getRecurringPartsReport } from "@/lib/services/reportingService";
 
-export default function TekrarEdenIslerPage() {
-  const rows = getRecurringPartsReport();
+export default async function TekrarEdenIslerPage() {
+  const rows = await getRecurringPartsReport();
 
   return (
     <div>

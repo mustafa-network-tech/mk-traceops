@@ -13,23 +13,25 @@ import {
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  companyRepository,
-  departmentRepository,
-  locationRepository,
-  userRepository,
-} from "@/lib/repositories";
+  listCompanies,
+  listDepartments,
+  listLocations,
+  listUsers,
+} from "@/lib/data/supabase-data";
 
-export default function AyarlarPage() {
-  const companies = companyRepository.getAll();
-  const departments = departmentRepository.getAll();
-  const locations = locationRepository.getAll();
-  const users = userRepository.getAll();
+export default async function AyarlarPage() {
+  const [companies, departments, locations, users] = await Promise.all([
+    listCompanies(),
+    listDepartments(),
+    listLocations(),
+    listUsers(),
+  ]);
 
   return (
     <div>
       <PageHeader
         title="Firma / sistem ayarları"
-        description="Şirket, bölüm, depo konumları ve kullanıcı örnekleri. V1 mock — ileride Supabase kimlik ve çoklu şirket yapılandırması bağlanacak."
+        description="Şirket, bölüm, depo konumları ve kullanıcı kayıtları (Supabase public.users)."
         breadcrumbs={[
           { label: "Kokpit", href: "/kokpit" },
           { label: "Ayarlar" },
@@ -59,7 +61,7 @@ export default function AyarlarPage() {
               <Textarea
                 readOnly
                 className="bg-slate-50"
-                value="Supabase projesi ve RLS politikaları eklendiğinde bu ekran yapılandırma API’sine bağlanır."
+                value="Tablolardaki firmalar ve kullanıcılar veritabanından gelir; bu form şimdilik şablondur."
               />
             </div>
           </CardContent>
@@ -150,7 +152,7 @@ export default function AyarlarPage() {
 
       <Card className="mt-4">
         <CardHeader>
-          <CardTitle>Kullanıcılar (mock)</CardTitle>
+          <CardTitle>Kullanıcılar</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>

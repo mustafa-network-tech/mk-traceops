@@ -12,16 +12,28 @@ import {
 } from "@/components/ui/table";
 import { formatDate, formatDateTime } from "@/lib/format";
 import {
-  locationRepository,
-  productRepository,
-  productStockRepository,
-  productionOrderRepository,
-  shipmentItemRepository,
-  shipmentRepository,
-} from "@/lib/repositories";
+  listLocations,
+  listProductStockItems,
+  listProductionOrders,
+  listProducts,
+  listShipmentItems,
+  listShipments,
+} from "@/lib/data/supabase-data";
 
-export default function UrunStoguPage() {
-  const items = productStockRepository.getAll();
+export default async function UrunStoguPage() {
+  const [items, products, locations, orders, shipItems, shipments] =
+    await Promise.all([
+      listProductStockItems(),
+      listProducts(),
+      listLocations(),
+      listProductionOrders(),
+      listShipmentItems(),
+      listShipments(),
+    ]);
+
+  const prodById = new Map(products.map((p) => [p.id, p]));
+  const locById = new Map(locations.map((l) => [l.id, l]));
+  const shipById = new Map(shipments.map((s) => [s.id, s]));
 
   return (
     <div>
@@ -53,21 +65,20 @@ export default function UrunStoguPage() {
           </TableHeader>
           <TableBody>
             {items.map((psi) => {
-              const p = productRepository.getById(psi.productId);
-              const loc = locationRepository.getById(psi.locationId);
-              const recentPo = productionOrderRepository
-                .getAll()
+              const p = prodById.get(psi.productId);
+              const loc = locById.get(psi.locationId);
+              const recentPo = orders
                 .filter((o) => o.productId === psi.productId)
                 .sort((a, b) => (a.scheduledDate < b.scheduledDate ? 1 : -1))
                 .slice(0, 2);
-              const shipItems = shipmentItemRepository
-                .getAll()
-                .filter((i) => i.productId === psi.productId);
-              const lastShip = shipItems
-                .map((i) => shipmentRepository.getById(i.shipmentId))
+              const relatedShipItems = shipItems.filter(
+                (i) => i.productId === psi.productId,
+              );
+              const lastShip = relatedShipItems
+                .map((i) => shipById.get(i.shipmentId))
                 .filter(Boolean)
                 .sort((a, b) =>
-                  (a!.shippedAt < b!.shippedAt ? 1 : -1),
+                  a!.shippedAt < b!.shippedAt ? 1 : -1,
                 )[0];
 
               return (

@@ -3,15 +3,15 @@ import {
   dashboardStockMix,
 } from "@/lib/data/seed";
 import {
-  assemblyGroupRepository,
-  materialRepository,
-  partRepository,
-  productStockRepository,
-  productionOrderRepository,
-  shipmentRepository,
-  stockMovementRepository,
-  supplierRepository,
-} from "@/lib/repositories";
+  listAssemblyGroups,
+  listMaterials,
+  listParts,
+  listProductStockItems,
+  listProductionOrders,
+  listShipments,
+  listStockMovements,
+  listSuppliers,
+} from "@/lib/data/supabase-data";
 import type { DashboardMetrics, StockMovement } from "@/lib/types/models";
 
 function startOfMonthIso() {
@@ -19,14 +19,14 @@ function startOfMonthIso() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
 }
 
-export function getDashboardMetrics(): DashboardMetrics {
-  const parts = partRepository.getAll();
-  const groups = assemblyGroupRepository.getAll();
-  const mats = materialRepository.getAll();
+export async function getDashboardMetrics(): Promise<DashboardMetrics> {
+  const parts = await listParts();
+  const groups = await listAssemblyGroups();
+  const mats = await listMaterials();
   const raw = mats.filter((m) => m.type === "ham_madde");
   const sarf = mats.filter((m) => m.type === "sarf_malzeme");
   const critical = mats.filter((m) => m.currentStock <= m.minStock);
-  const orders = productionOrderRepository.getAll();
+  const orders = await listProductionOrders();
   const pending = orders.filter(
     (o) => o.status === "planlandı" || o.status === "üretimde",
   ).length;
@@ -34,10 +34,10 @@ export function getDashboardMetrics(): DashboardMetrics {
   const completedThisMonth = orders.filter(
     (o) => o.status === "tamamlandı" && o.scheduledDate >= monthStart,
   ).length;
-  const stocks = productStockRepository.getAll();
-  const openShipments = shipmentRepository
-    .getAll()
-    .filter((s) => s.status !== "teslim_edildi" && s.status !== "iptal").length;
+  const stocks = await listProductStockItems();
+  const openShipments = (await listShipments()).filter(
+    (s) => s.status !== "teslim_edildi" && s.status !== "iptal",
+  ).length;
 
   return {
     totalParts: parts.length,
@@ -49,14 +49,14 @@ export function getDashboardMetrics(): DashboardMetrics {
     completedProductionThisMonth: completedThisMonth,
     productStockSkus: stocks.length,
     openShipments,
-    supplierCount: supplierRepository.getAll().length,
+    supplierCount: (await listSuppliers()).length,
   };
 }
 
-export function getRecentStockMovements(limit = 8): StockMovement[] {
-  return [...stockMovementRepository.getAll()]
-    .sort((a, b) => (a.occurredAt < b.occurredAt ? 1 : -1))
-    .slice(0, limit);
+export async function getRecentStockMovements(
+  limit = 8,
+): Promise<StockMovement[]> {
+  return (await listStockMovements()).slice(0, limit);
 }
 
 export function getProductionTrend() {

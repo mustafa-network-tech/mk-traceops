@@ -1,3 +1,4 @@
+import { syncPartsFromImportBatch } from "@/lib/data/import-sync";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { ImportBatchStatus } from "@/lib/types/models";
 import type { PreparedImportRow } from "@/lib/services/excelParse";
@@ -51,6 +52,8 @@ export async function persistExcelImport(
       throw new Error(rowErr.message);
     }
   }
+
+  await syncPartsFromImportBatch(supabase, batchId);
 
   return { batchId };
 }

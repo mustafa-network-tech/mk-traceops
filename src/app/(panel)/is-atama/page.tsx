@@ -8,15 +8,22 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatDate } from "@/lib/format";
 import {
-  companyRepository,
-  operationAssignmentRepository,
-  partRepository,
-} from "@/lib/repositories";
+  listCompanies,
+  listOperationAssignments,
+  listParts,
+} from "@/lib/data/supabase-data";
+import { formatDate } from "@/lib/format";
 
-export default function IsAtamaPage() {
-  const assignments = operationAssignmentRepository.getAll();
+export default async function IsAtamaPage() {
+  const [assignments, parts, companies] = await Promise.all([
+    listOperationAssignments(),
+    listParts(),
+    listCompanies(),
+  ]);
+
+  const partById = new Map(parts.map((p) => [p.id, p]));
+  const compById = new Map(companies.map((c) => [c.id, c]));
 
   return (
     <div>
@@ -43,8 +50,8 @@ export default function IsAtamaPage() {
           </TableHeader>
           <TableBody>
             {assignments.map((a) => {
-              const p = partRepository.getById(a.partId);
-              const c = companyRepository.getById(a.assignedCompanyId);
+              const p = partById.get(a.partId);
+              const c = compById.get(a.assignedCompanyId);
               return (
                 <TableRow key={a.id}>
                   <TableCell>

@@ -17,12 +17,13 @@ import {
   getImportBatchById,
   listImportRowsForBatch,
 } from "@/lib/data/import-queries";
-import { formatDateTime } from "@/lib/format";
 import {
-  assemblyGroupRepository,
-  partRepository,
-  userRepository,
-} from "@/lib/repositories";
+  getPart,
+  getUser,
+  listAssemblyGroupsByBatchId,
+  listPartsByBatchId,
+} from "@/lib/data/supabase-data";
+import { formatDateTime } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -34,10 +35,31 @@ export default async function AktarimBatchDetailPage({ params }: Props) {
   if (!batch) notFound();
 
   const rows = await listImportRowsForBatch(id);
-  const parts = partRepository.getByBatchId(id);
-  const groups = assemblyGroupRepository.getByImportBatchId(id);
+  const [parts, groups] = await Promise.all([
+    listPartsByBatchId(id),
+    listAssemblyGroupsByBatchId(id),
+  ]);
+
+  const linkedIds = [
+    ...new Set(
+      rows
+        .map((r) => r.linkedPartId)
+        .filter((x): x is string => Boolean(x)),
+    ),
+  ];
+  const linkedParts = await Promise.all(linkedIds.map((pid) => getPart(pid)));
+  const partById = new Map<string, NonNullable<(typeof linkedParts)[0]>>();
+  for (const p of linkedParts) {
+    if (p) partById.set(p.id, p);
+  }
+  for (const p of parts) {
+    partById.set(p.id, p);
+  }
+
+  const agById = new Map(groups.map((g) => [g.id, g]));
+
   const uploader = batch.uploadedByUserId
-    ? userRepository.getById(batch.uploadedByUserId)
+    ? await getUser(batch.uploadedByUserId)
     : undefined;
 
   return (
@@ -46,7 +68,7 @@ export default async function AktarimBatchDetailPage({ params }: Props) {
         title={batch.fileName}
         description={
           batch.notes ??
-          "Aktarım partisi detayı — satır durumları. Parça kayıtları, bu batch ile eşleşen mock veride varsa listelenir."
+          "Aktarım partisi detayı — satır durumları ve oluşan parça kayıtları."
         }
         breadcrumbs={[
           { label: "Kokpit", href: "/kokpit" },
@@ -137,7 +159,7 @@ export default async function AktarimBatchDetailPage({ params }: Props) {
                   </TableCell>
                   <TableCell className="font-mono text-xs">
                     {r.linkedPartId
-                      ? partRepository.getById(r.linkedPartId)?.partCode ??
+                      ? partById.get(r.linkedPartId)?.partCode ??
                         r.linkedPartId
                       : "—"}
                   </TableCell>
@@ -166,7 +188,7 @@ export default async function AktarimBatchDetailPage({ params }: Props) {
             <TableBody>
               {parts.map((p) => {
                 const ag = p.assemblyGroupId
-                  ? assemblyGroupRepository.getById(p.assemblyGroupId)
+                  ? agById.get(p.assemblyGroupId)
                   : undefined;
                 return (
                   <TableRow key={p.id}>

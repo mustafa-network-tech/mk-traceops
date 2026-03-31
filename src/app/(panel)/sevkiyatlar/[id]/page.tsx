@@ -13,27 +13,32 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { formatDateTime } from "@/lib/format";
 import {
-  productRepository,
-  productStockRepository,
-  shipmentRepository,
-} from "@/lib/repositories";
+  getProduct,
+  getProductStockByProductId,
+  getShipment,
+  getShipmentItems,
+} from "@/lib/data/supabase-data";
+import { formatDateTime } from "@/lib/format";
 
 type Props = { params: Promise<{ id: string }> };
 
 export default async function SevkiyatDetayPage({ params }: Props) {
   const { id } = await params;
-  const sh = shipmentRepository.getById(id);
+  const sh = await getShipment(id);
   if (!sh) notFound();
 
-  const items = shipmentRepository.getItems(id);
+  const items = await getShipmentItems(id);
+  const products = await Promise.all(items.map((i) => getProduct(i.productId)));
+  const stocks = await Promise.all(
+    items.map((i) => getProductStockByProductId(i.productId)),
+  );
 
   return (
     <div>
       <PageHeader
         title={sh.shipmentNumber}
-        description="Sevkiyat kalemleri ve stok bağlantısı. Mamul stoğu bu çıkışlarla azalır (V1 mock tutarlılığı)."
+        description="Sevkiyat kalemleri ve stok bağlantısı."
         breadcrumbs={[
           { label: "Kokpit", href: "/kokpit" },
           { label: "Sevkiyatlar", href: "/sevkiyatlar" },
@@ -96,9 +101,9 @@ export default async function SevkiyatDetayPage({ params }: Props) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {items.map((i) => {
-                const p = productRepository.getById(i.productId);
-                const stock = productStockRepository.getByProductId(i.productId);
+              {items.map((i, idx) => {
+                const p = products[idx];
+                const stock = stocks[idx];
                 return (
                   <TableRow key={i.id}>
                     <TableCell>
