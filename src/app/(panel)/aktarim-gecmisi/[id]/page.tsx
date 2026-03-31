@@ -13,6 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { DeleteImportBatchButton } from "@/components/features/delete-import-batch-button";
 import {
   getImportBatchById,
   listImportRowsForBatch,
@@ -76,12 +77,19 @@ export default async function AktarimBatchDetailPage({ params }: Props) {
           { label: batch.fileName },
         ]}
         actions={
-          <Link
-            href="/aktarim-gecmisi"
-            className="text-sm text-slate-600 underline-offset-2 hover:underline"
-          >
-            Listeye dön
-          </Link>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <DeleteImportBatchButton
+              batchId={id}
+              fileLabel={batch.fileName}
+              redirectTo="/aktarim-gecmisi"
+            />
+            <Link
+              href="/aktarim-gecmisi"
+              className="text-sm text-slate-600 underline-offset-2 hover:underline"
+            >
+              Listeye dön
+            </Link>
+          </div>
         }
       />
 

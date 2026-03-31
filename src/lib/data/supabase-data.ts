@@ -369,8 +369,15 @@ export async function getMaterial(id: string): Promise<Material | undefined> {
 export async function listMaterialsByType(
   type: "ham_madde" | "sarf_malzeme",
 ): Promise<Material[]> {
-  const all = await listMaterials();
-  return all.filter((m) => m.type === type);
+  const c = await client();
+  if (!c) return [];
+  const { data, error } = await c
+    .from("materials")
+    .select("*")
+    .eq("type", type)
+    .order("code");
+  if (error) throw new Error(error.message);
+  return (data as Row[] | null)?.map(mapMaterial) ?? [];
 }
 
 export async function listMaterialSupplierRelations(): Promise<

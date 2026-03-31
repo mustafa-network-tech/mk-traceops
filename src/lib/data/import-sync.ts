@@ -18,7 +18,8 @@ function materialCodeFromName(name: string): string {
 }
 
 /**
- * import_rows (bekliyor) → assembly_groups + materials + parts + satır güncelleme.
+ * import_rows (bekliyor) → assembly_groups + materials + parts + tedarikçi /
+ * malzeme–tedarikçi ilişkisi (Firma doluysa) + satır güncelleme.
  */
 export async function syncPartsFromImportBatch(
   supabase: SupabaseClient,
@@ -169,6 +170,57 @@ export async function syncPartsFromImportBatch(
     }
 
     const partId = partIns.id as string;
+
+    if (materialId && firma) {
+      let supplierId: string | null = null;
+      const { data: supHit } = await supabase
+        .from("suppliers")
+        .select("id")
+        .ilike("name", firma)
+        .limit(1)
+        .maybeSingle();
+
+      if (supHit?.id) {
+        supplierId = supHit.id as string;
+      } else {
+        const { data: supIns, error: supErr } = await supabase
+          .from("suppliers")
+          .insert({
+            name: firma,
+            notes: `Excel aktarımı (${batchId})`,
+          })
+          .select("id")
+          .single();
+        if (!supErr && supIns?.id) supplierId = supIns.id as string;
+      }
+
+      if (supplierId) {
+        const { data: relDup } = await supabase
+          .from("material_supplier_relations")
+          .select("id")
+          .eq("material_id", materialId)
+          .eq("supplier_id", supplierId)
+          .maybeSingle();
+
+        if (!relDup) {
+          const { count: matRelCount } = await supabase
+            .from("material_supplier_relations")
+            .select("*", { count: "exact", head: true })
+            .eq("material_id", materialId);
+
+          const n = matRelCount ?? 0;
+          await supabase.from("material_supplier_relations").insert({
+            material_id: materialId,
+            supplier_id: supplierId,
+            last_purchase_price: 0,
+            currency: "TRY",
+            last_purchase_date: new Date().toISOString().slice(0, 10),
+            is_primary: n === 0,
+            priority_order: n,
+          });
+        }
+      }
+    }
 
     await supabase
       .from("import_rows")

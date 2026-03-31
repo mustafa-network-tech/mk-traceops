@@ -11,6 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { DeleteImportBatchButton } from "@/components/features/delete-import-batch-button";
 import { listImportBatches } from "@/lib/data/import-queries";
 import { getUser } from "@/lib/data/supabase-data";
 import { formatDateTime } from "@/lib/format";
@@ -34,7 +35,7 @@ export default async function AktarimGecmisiPage() {
     <div>
       <PageHeader
         title="Aktarım geçmişi"
-        description="Excel yüklemeleri, satır sayıları ve durum. Detaydan satır bazlı duruma gidin."
+        description="Excel yüklemeleri, satır sayıları ve durum. Test aşamasında eski aktarımları silebilirsiniz (parçalar ve bu batch montaj grupları da kaldırılır)."
         breadcrumbs={[
           { label: "Kokpit", href: "/kokpit" },
           { label: "Aktarım geçmişi" },
@@ -57,13 +58,14 @@ export default async function AktarimGecmisiPage() {
               <TableHead className="text-right">Başarılı</TableHead>
               <TableHead className="text-right">Hata</TableHead>
               <TableHead>Durum</TableHead>
-              <TableHead />
+              <TableHead className="text-right">Detay</TableHead>
+              <TableHead className="text-right">Sil</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {batches.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="py-8 text-center text-sm text-slate-600">
+                <TableCell colSpan={9} className="py-8 text-center text-sm text-slate-600">
                   Henüz kayıt yok.{" "}
                   <Link href="/excel-aktarim" className="font-medium text-slate-800 underline">
                     Excel aktarımından
@@ -100,6 +102,13 @@ export default async function AktarimGecmisiPage() {
                     <Button variant="outline" size="sm" asChild>
                       <Link href={`/aktarim-gecmisi/${b.id}`}>Detay</Link>
                     </Button>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <DeleteImportBatchButton
+                      batchId={b.id}
+                      fileLabel={b.fileName}
+                      variant="outline"
+                    />
                   </TableCell>
                 </TableRow>
               );
