@@ -12,10 +12,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { getImportBatchById } from "@/lib/data/import-queries";
 import {
   assemblyGroupRepository,
   companyRepository,
-  importBatchRepository,
   materialRepository,
   partRepository,
   productionOrderRepository,
@@ -30,7 +30,7 @@ export default async function MontajGrupDetayPage({ params }: Props) {
 
   const parts = partRepository.getByAssemblyGroupId(id);
   const batch = g.importBatchId
-    ? importBatchRepository.getById(g.importBatchId)
+    ? await getImportBatchById(g.importBatchId)
     : undefined;
   const orders = productionOrderRepository
     .getAll()

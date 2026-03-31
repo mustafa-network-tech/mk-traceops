@@ -1,42 +1,79 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useCallback, useRef, useState } from "react";
 
+import { uploadExcelImportAction } from "@/app/actions/excel-import";
 import { PageHeader } from "@/components/layout/page-header";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  getExpectedExcelColumns,
-  simulateImportPreview,
-  simulateImportResult,
-} from "@/lib/services/importService";
+import { EXCEL_MAX_BYTES } from "@/lib/services/excelParse";
+import { getExpectedExcelColumns } from "@/lib/services/importService";
 
 export function ExcelImportSection() {
-  const [preview, setPreview] = useState(false);
-  const [resultMsg, setResultMsg] = useState<string | null>(null);
+  const router = useRouter();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState(false);
   const columns = getExpectedExcelColumns();
-  const rows = simulateImportPreview();
 
-  function runSimulate() {
-    setPreview(true);
-    const r = simulateImportResult();
-    setResultMsg(r.message);
-  }
+  const sendFile = useCallback(
+    async (file: File) => {
+      setError(null);
+      const name = file.name.toLowerCase();
+      if (!name.endsWith(".xlsx")) {
+        setError("Yalnızca .xlsx dosyaları kabul edilir.");
+        return;
+      }
+      if (file.size > EXCEL_MAX_BYTES) {
+        setError("Dosya boyutu 20 MB sınırını aşıyor.");
+        return;
+      }
+
+      setBusy(true);
+      try {
+        const fd = new FormData();
+        fd.append("file", file);
+        const result = await uploadExcelImportAction(fd);
+        if (result.ok) {
+          router.push(`/aktarim-gecmisi/${result.batchId}`);
+          router.refresh();
+        } else {
+          setError(result.error);
+        }
+      } finally {
+        setBusy(false);
+      }
+    },
+    [router],
+  );
+
+  const onInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const f = e.target.files?.[0];
+      if (f) void sendFile(f);
+      e.target.value = "";
+    },
+    [sendFile],
+  );
+
+  const onDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      setDragOver(false);
+      const f = e.dataTransfer.files?.[0];
+      if (f) void sendFile(f);
+    },
+    [sendFile],
+  );
 
   return (
     <div>
       <PageHeader
         title="Excel aktarım"
-        description="Üretim listesi ve montaj grupları için Excel şablonu. Gerçek XLS ayrıştırması ileride ImportService üzerinden bağlanacak."
+        description="Üretim listesi şablonu (.xlsx) yüklenir; satırlar Supabase import tablolarına kaydedilir. Zorunlu sütun: Parça Kodu."
         breadcrumbs={[
           { label: "Kokpit", href: "/kokpit" },
           { label: "Excel aktarım" },
@@ -49,27 +86,63 @@ export function ExcelImportSection() {
             <CardTitle>Dosya yükleme</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex min-h-[140px] flex-col items-center justify-center rounded-md border-2 border-dashed border-slate-300 bg-slate-50 px-4 text-center">
+            <input
+              ref={inputRef}
+              type="file"
+              accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+              className="sr-only"
+              name="file"
+              onChange={onInputChange}
+              disabled={busy}
+            />
+            <div
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") inputRef.current?.click();
+              }}
+              onDragEnter={(e) => {
+                e.preventDefault();
+                setDragOver(true);
+              }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragOver(true);
+              }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={onDrop}
+              onClick={() => !busy && inputRef.current?.click()}
+              className={
+                "flex min-h-[140px] cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed px-4 text-center transition-colors " +
+                (dragOver
+                  ? "border-sky-400 bg-sky-50"
+                  : "border-slate-300 bg-slate-50")
+              }
+            >
               <p className="text-sm font-medium text-slate-700">
-                Sürükleyip bırakın veya dosya seçin
+                Sürükleyip bırakın veya tıklayın
               </p>
               <p className="mt-1 text-xs text-slate-500">
-                .xlsx · Maks. 20 MB (simülasyon — gerçek parse yok)
+                .xlsx · En fazla 20 MB
               </p>
-              <Button className="mt-4" variant="secondary" type="button">
-                Dosya seç
+              <Button
+                className="mt-4 pointer-events-none"
+                variant="secondary"
+                type="button"
+                disabled={busy}
+              >
+                {busy ? "Yükleniyor…" : "Dosya seç"}
               </Button>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button type="button" onClick={runSimulate}>
-                Önizlemeyi simüle et
-              </Button>
-              <Button type="button" variant="outline" asChild>
-                <a href="/aktarim-gecmisi">Aktarım geçmişi</a>
+              <Button type="button" variant="outline" asChild disabled={busy}>
+                <Link href="/aktarim-gecmisi">Aktarım geçmişi</Link>
               </Button>
             </div>
-            {resultMsg ? (
-              <p className="text-sm text-emerald-800">{resultMsg}</p>
+            {error ? (
+              <p className="text-sm text-red-700" role="alert">
+                {error}
+              </p>
             ) : null}
           </CardContent>
         </Card>
@@ -93,43 +166,6 @@ export function ExcelImportSection() {
           </CardContent>
         </Card>
       </div>
-
-      {preview ? (
-        <Card className="mt-4">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>İçe aktarma önizlemesi</CardTitle>
-            <Badge variant="secondary">Simülasyon</Badge>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Parça kodu</TableHead>
-                  <TableHead>Açıklama</TableHead>
-                  <TableHead>Malzeme</TableHead>
-                  <TableHead>Ölçü</TableHead>
-                  <TableHead>Adet</TableHead>
-                  <TableHead>Operasyon</TableHead>
-                  <TableHead>Montaj grubu</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rows.map((r, i) => (
-                  <TableRow key={i}>
-                    <TableCell className="font-mono text-xs">{r.parcaKodu}</TableCell>
-                    <TableCell>{r.aciklama}</TableCell>
-                    <TableCell>{r.malzeme}</TableCell>
-                    <TableCell>{r.olcu}</TableCell>
-                    <TableCell>{r.adet}</TableCell>
-                    <TableCell>{r.operasyon}</TableCell>
-                    <TableCell className="font-mono text-xs">{r.montajGrubu}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      ) : null}
     </div>
   );
 }

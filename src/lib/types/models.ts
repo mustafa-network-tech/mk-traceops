@@ -179,7 +179,8 @@ export type PartType = "ana_parça" | "alt_parça" | "montaj";
 
 export interface Part {
   id: string;
-  importBatchId: string;
+  /** Gerçek Excel aktarımı UUID'si; mock parçalarda yok. */
+  importBatchId?: string;
   partCode: string;
   description: string;
   materialId?: string;

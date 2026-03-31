@@ -2,8 +2,6 @@ import type {
   AssemblyGroup,
   Company,
   Department,
-  ImportBatch,
-  ImportRow,
   Location,
   Material,
   MaterialCategory,
@@ -322,65 +320,36 @@ export const materialSupplierRelations: MaterialSupplierRelation[] = [
   },
 ];
 
-export const importBatches: ImportBatch[] = [
-  {
-    id: "imb-1",
-    fileName: "Proje_Alpha_Parca_Listesi.xlsx",
-    uploadedAt: "2026-03-28T08:15:00.000Z",
-    uploadedByUserId: "usr-1",
-    rowCount: 48,
-    successCount: 46,
-    errorCount: 2,
-    status: "kısmi_hata",
-    notes: "İki satırda montaj kodu boş",
-  },
-  {
-    id: "imb-2",
-    fileName: "Montaj_Beta_Rev3.xlsx",
-    uploadedAt: "2026-03-22T14:40:00.000Z",
-    uploadedByUserId: "usr-1",
-    rowCount: 112,
-    successCount: 112,
-    errorCount: 0,
-    status: "tamamlandı",
-  },
-];
-
 export const assemblyGroups: AssemblyGroup[] = [
   {
     id: "asg-1",
     code: "MG-ALPHA-01",
     name: "Alpha Gövde Montajı",
     projectReference: "PRJ-ALPHA",
-    importBatchId: "imb-1",
   },
   {
     id: "asg-2",
     code: "MG-ALPHA-02",
     name: "Alpha Kapak Seti",
     projectReference: "PRJ-ALPHA",
-    importBatchId: "imb-1",
   },
   {
     id: "asg-3",
     code: "MG-BETA-MAIN",
     name: "Beta Ana Ünite",
     projectReference: "PRJ-BETA",
-    importBatchId: "imb-2",
   },
   {
     id: "asg-4",
     code: "MG-BETA-AUX",
     name: "Beta Yardımcı Modül",
     projectReference: "PRJ-BETA",
-    importBatchId: "imb-2",
   },
 ];
 
 export const parts: Part[] = [
   {
     id: "prt-1",
-    importBatchId: "imb-1",
     partCode: "P-ALPHA-001",
     description: "Gövde sacı ön",
     materialId: "mat-1",
@@ -390,11 +359,9 @@ export const parts: Part[] = [
     assignedCompanyId: "cmp-2",
     assemblyGroupId: "asg-1",
     type: "ana_parça",
-    importRowId: "imr-1",
   },
   {
     id: "prt-2",
-    importBatchId: "imb-1",
     partCode: "P-ALPHA-002",
     description: "Gövde sacı arka",
     materialId: "mat-1",
@@ -404,11 +371,9 @@ export const parts: Part[] = [
     assignedCompanyId: "cmp-2",
     assemblyGroupId: "asg-1",
     type: "ana_parça",
-    importRowId: "imr-2",
   },
   {
     id: "prt-3",
-    importBatchId: "imb-1",
     partCode: "P-ALPHA-050",
     description: "Taşıyıcı profil",
     materialId: "mat-2",
@@ -418,11 +383,9 @@ export const parts: Part[] = [
     assignedCompanyId: "cmp-1",
     assemblyGroupId: "asg-1",
     type: "alt_parça",
-    importRowId: "imr-3",
   },
   {
     id: "prt-4",
-    importBatchId: "imb-1",
     partCode: "P-ALPHA-KPK-01",
     description: "Kapak sacı",
     materialId: "mat-7",
@@ -432,11 +395,9 @@ export const parts: Part[] = [
     assignedCompanyId: "cmp-1",
     assemblyGroupId: "asg-2",
     type: "montaj",
-    importRowId: "imr-4",
   },
   {
     id: "prt-5",
-    importBatchId: "imb-2",
     partCode: "P-BETA-100",
     description: "Ana şase borusu",
     materialId: "mat-10",
@@ -446,11 +407,9 @@ export const parts: Part[] = [
     assignedCompanyId: "cmp-1",
     assemblyGroupId: "asg-3",
     type: "ana_parça",
-    importRowId: "imr-10",
   },
   {
     id: "prt-6",
-    importBatchId: "imb-2",
     partCode: "P-BETA-101",
     description: "Şase bağlantı profili",
     materialId: "mat-3",
@@ -460,11 +419,9 @@ export const parts: Part[] = [
     assignedCompanyId: "cmp-2",
     assemblyGroupId: "asg-3",
     type: "alt_parça",
-    importRowId: "imr-11",
   },
   {
     id: "prt-7",
-    importBatchId: "imb-2",
     partCode: "P-BETA-AUX-01",
     description: "Yardımcı modül sacı",
     materialId: "mat-1",
@@ -474,11 +431,9 @@ export const parts: Part[] = [
     assignedCompanyId: "cmp-2",
     assemblyGroupId: "asg-4",
     type: "ana_parça",
-    importRowId: "imr-12",
   },
   {
     id: "prt-8",
-    importBatchId: "imb-1",
     partCode: "P-ALPHA-001",
     description: "Gövde sacı ön (revize)",
     materialId: "mat-1",
@@ -488,7 +443,6 @@ export const parts: Part[] = [
     assignedCompanyId: "cmp-2",
     assemblyGroupId: "asg-2",
     type: "ana_parça",
-    importRowId: "imr-5",
   },
 ];
 
@@ -830,85 +784,6 @@ export const shipmentItems: ShipmentItem[] = [
     unit: "adet",
   },
 ];
-
-function buildImportRows(): ImportRow[] {
-  const rows: ImportRow[] = [];
-  const sampleRaw = [
-    {
-      parca: "P-ALPHA-001",
-      aciklama: "Gövde sacı ön",
-      malzeme: "Dkp 2mm",
-      olcu: "1200x800",
-      adet: "4",
-      op: "Lazer",
-      montaj: "MG-ALPHA-01",
-    },
-    {
-      parca: "P-ALPHA-002",
-      aciklama: "Gövde sacı arka",
-      malzeme: "Dkp 2mm",
-      olcu: "1200x800",
-      adet: "4",
-      op: "Lazer",
-      montaj: "MG-ALPHA-01",
-    },
-    {
-      parca: "P-ERR-XX",
-      aciklama: "",
-      malzeme: "",
-      olcu: "",
-      adet: "1",
-      op: "",
-      montaj: "",
-    },
-  ];
-  for (let i = 0; i < sampleRaw.length; i++) {
-    const s = sampleRaw[i];
-    const status: ImportRow["status"] =
-      s.parca === "P-ERR-XX" ? "hata" : "işlendi";
-    rows.push({
-      id: `imr-${i + 1}`,
-      batchId: "imb-1",
-      rowIndex: i + 1,
-      rawData: {
-        "Parça Kodu": s.parca,
-        Açıklama: s.aciklama,
-        Malzeme: s.malzeme,
-        Ölçü: s.olcu,
-        Adet: s.adet,
-        Operasyon: s.op,
-        "Montaj Grubu": s.montaj,
-      },
-      status,
-      message:
-        status === "hata"
-          ? "Zorunlu alanlar eksik (açıklama / malzeme / montaj)"
-          : undefined,
-      linkedPartId: status === "işlendi" ? `prt-${i + 1}` : undefined,
-    });
-  }
-  for (let j = 0; j < 3; j++) {
-    rows.push({
-      id: `imr-${10 + j}`,
-      batchId: "imb-2",
-      rowIndex: j + 1,
-      rawData: {
-        "Parça Kodu": `P-BETA-${100 + j}`,
-        Açıklama: "Örnek satır",
-        Malzeme: "Boru",
-        Ölçü: "Ø50",
-        Adet: String(j + 5),
-        Operasyon: "Kesim",
-        "Montaj Grubu": "MG-BETA-MAIN",
-      },
-      status: "işlendi",
-      linkedPartId: j === 0 ? "prt-5" : undefined,
-    });
-  }
-  return rows;
-}
-
-export const importRows: ImportRow[] = buildImportRows();
 
 export const dashboardProductionTrend: { label: string; value: number }[] = [
   { label: "24 Mar", value: 12 },

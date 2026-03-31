@@ -10,10 +10,28 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { assemblyGroupRepository, importBatchRepository } from "@/lib/repositories";
+import { getImportBatchById } from "@/lib/data/import-queries";
+import { assemblyGroupRepository } from "@/lib/repositories";
+import type { ImportBatch } from "@/lib/types/models";
 
-export default function MontajGrupTakibiPage() {
+export const dynamic = "force-dynamic";
+
+export default async function MontajGrupTakibiPage() {
   const groups = assemblyGroupRepository.getAll();
+  const batchIds = [
+    ...new Set(
+      groups
+        .map((g) => g.importBatchId)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  const batchById = new Map<string, ImportBatch>();
+  await Promise.all(
+    batchIds.map(async (id) => {
+      const b = await getImportBatchById(id);
+      if (b) batchById.set(id, b);
+    }),
+  );
 
   return (
     <div>
@@ -40,7 +58,7 @@ export default function MontajGrupTakibiPage() {
           <TableBody>
             {groups.map((g) => {
               const batch = g.importBatchId
-                ? importBatchRepository.getById(g.importBatchId)
+                ? batchById.get(g.importBatchId)
                 : undefined;
               return (
                 <TableRow key={g.id}>

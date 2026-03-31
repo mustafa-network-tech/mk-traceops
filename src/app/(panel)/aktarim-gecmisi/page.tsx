@@ -11,17 +11,20 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { listImportBatches } from "@/lib/data/import-queries";
 import { formatDateTime } from "@/lib/format";
-import { importBatchRepository, userRepository } from "@/lib/repositories";
+import { userRepository } from "@/lib/repositories";
 
-export default function AktarimGecmisiPage() {
-  const batches = importBatchRepository.getAll();
+export const dynamic = "force-dynamic";
+
+export default async function AktarimGecmisiPage() {
+  const batches = await listImportBatches();
 
   return (
     <div>
       <PageHeader
         title="Aktarım geçmişi"
-        description="Excel yüklemeleri, satır sayıları ve durum. Detaydan satır bazlı durum ve oluşan parça önizlemesine gidin."
+        description="Excel yüklemeleri, satır sayıları ve durum. Detaydan satır bazlı duruma gidin."
         breadcrumbs={[
           { label: "Kokpit", href: "/kokpit" },
           { label: "Aktarım geçmişi" },
@@ -48,15 +51,31 @@ export default function AktarimGecmisiPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
+            {batches.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={8} className="py-8 text-center text-sm text-slate-600">
+                  Henüz kayıt yok.{" "}
+                  <Link href="/excel-aktarim" className="font-medium text-slate-800 underline">
+                    Excel aktarımından
+                  </Link>{" "}
+                  yükleyin. (Liste yalnızca Supabase&apos;e bağlıyken dolar; mock veri kaldırıldı.)
+                </TableCell>
+              </TableRow>
+            ) : null}
             {batches.map((b) => {
-              const u = userRepository.getById(b.uploadedByUserId);
+              const u = b.uploadedByUserId
+                ? userRepository.getById(b.uploadedByUserId)
+                : undefined;
+              const uploaderLabel =
+                u?.fullName ??
+                (b.uploadedByUserId ? b.uploadedByUserId : "—");
               return (
                 <TableRow key={b.id}>
                   <TableCell className="font-medium">{b.fileName}</TableCell>
                   <TableCell className="whitespace-nowrap text-xs">
                     {formatDateTime(b.uploadedAt)}
                   </TableCell>
-                  <TableCell>{u?.fullName ?? b.uploadedByUserId}</TableCell>
+                  <TableCell>{uploaderLabel}</TableCell>
                   <TableCell className="text-right tabular-nums">{b.rowCount}</TableCell>
                   <TableCell className="text-right tabular-nums text-emerald-700">
                     {b.successCount}

@@ -13,26 +13,41 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { assemblyGroupRepository, importBatchRepository, importRowRepository, partRepository, userRepository } from "@/lib/repositories";
+import {
+  getImportBatchById,
+  listImportRowsForBatch,
+} from "@/lib/data/import-queries";
 import { formatDateTime } from "@/lib/format";
+import {
+  assemblyGroupRepository,
+  partRepository,
+  userRepository,
+} from "@/lib/repositories";
+
+export const dynamic = "force-dynamic";
 
 type Props = { params: Promise<{ id: string }> };
 
 export default async function AktarimBatchDetailPage({ params }: Props) {
   const { id } = await params;
-  const batch = importBatchRepository.getById(id);
+  const batch = await getImportBatchById(id);
   if (!batch) notFound();
 
-  const rows = importRowRepository.getByBatchId(id);
+  const rows = await listImportRowsForBatch(id);
   const parts = partRepository.getByBatchId(id);
   const groups = assemblyGroupRepository.getByImportBatchId(id);
-  const uploader = userRepository.getById(batch.uploadedByUserId);
+  const uploader = batch.uploadedByUserId
+    ? userRepository.getById(batch.uploadedByUserId)
+    : undefined;
 
   return (
     <div>
       <PageHeader
         title={batch.fileName}
-        description={batch.notes ?? "Aktarım partisi detayı — satır durumları ve üretilen parça kayıtları."}
+        description={
+          batch.notes ??
+          "Aktarım partisi detayı — satır durumları. Parça kayıtları, bu batch ile eşleşen mock veride varsa listelenir."
+        }
         breadcrumbs={[
           { label: "Kokpit", href: "/kokpit" },
           { label: "Aktarım geçmişi", href: "/aktarim-gecmisi" },
@@ -54,7 +69,8 @@ export default async function AktarimBatchDetailPage({ params }: Props) {
             <CardTitle className="text-xs text-slate-500">Yükleyen</CardTitle>
           </CardHeader>
           <CardContent className="pb-3 pt-0 text-sm">
-            {uploader?.fullName ?? batch.uploadedByUserId}
+            {uploader?.fullName ??
+              (batch.uploadedByUserId ? batch.uploadedByUserId : "—")}
           </CardContent>
         </Card>
         <Card>
@@ -70,7 +86,8 @@ export default async function AktarimBatchDetailPage({ params }: Props) {
             <CardTitle className="text-xs text-slate-500">Özet</CardTitle>
           </CardHeader>
           <CardContent className="pb-3 pt-0 text-sm">
-            {batch.successCount} başarılı · {batch.errorCount} hata · {batch.rowCount} satır
+            {batch.successCount} başarılı · {batch.errorCount} hata ·{" "}
+            {batch.rowCount} satır
           </CardContent>
         </Card>
         <Card>
@@ -112,7 +129,7 @@ export default async function AktarimBatchDetailPage({ params }: Props) {
                   </TableCell>
                   <TableCell className="max-w-md">
                     <pre className="whitespace-pre-wrap break-all text-xs text-slate-700">
-                      {JSON.stringify(r.rawData, null, 0)}
+                      {JSON.stringify(r.rawData)}
                     </pre>
                   </TableCell>
                   <TableCell className="text-xs text-slate-600">
@@ -120,7 +137,8 @@ export default async function AktarimBatchDetailPage({ params }: Props) {
                   </TableCell>
                   <TableCell className="font-mono text-xs">
                     {r.linkedPartId
-                      ? partRepository.getById(r.linkedPartId)?.partCode ?? r.linkedPartId
+                      ? partRepository.getById(r.linkedPartId)?.partCode ??
+                        r.linkedPartId
                       : "—"}
                   </TableCell>
                 </TableRow>

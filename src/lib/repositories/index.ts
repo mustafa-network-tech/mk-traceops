@@ -2,8 +2,6 @@ import {
   assemblyGroups,
   companies,
   departments,
-  importBatches,
-  importRows,
   locations,
   materialCategories,
   materialSupplierRelations,
@@ -146,16 +144,6 @@ export const operationAssignmentRepository = {
   getAll: () => operationAssignments,
   getByPartId: (partId: string) =>
     operationAssignments.filter((o) => o.partId === partId),
-};
-
-export const importBatchRepository = {
-  getAll: () => importBatches,
-  getById: (id: string) => importBatches.find((b) => b.id === id),
-};
-
-export const importRowRepository = {
-  getByBatchId: (batchId: string) =>
-    importRows.filter((r) => r.batchId === batchId),
 };
 
 export const productionOrderLineRepository = {
