@@ -19,8 +19,46 @@ function materialCodeFromName(name: string): string {
   return `HM-${slug || "OTO"}-${tail}`;
 }
 
+/** Excel TR: 1.234,56 veya 1500,00 gibi biçimleri sayıya çevirir. */
 function parseOptionalNumber(s: string): number {
-  const n = Number(s.replace(",", "."));
+  let t = s
+    .trim()
+    .replace(/\u00a0/g, "")
+    .replace(/\s/g, "");
+  if (!t) return 0;
+
+  const hasComma = t.includes(",");
+  const hasDot = t.includes(".");
+
+  if (hasComma && hasDot) {
+    t = t.replace(/\./g, "").replace(",", ".");
+  } else if (hasComma) {
+    const last = t.lastIndexOf(",");
+    const intPart = t.slice(0, last).replace(/\./g, "");
+    const frac = t.slice(last + 1);
+    if (
+      frac.length > 0 &&
+      frac.length <= 2 &&
+      /^\d+$/.test(frac) &&
+      /^\d+$/.test(intPart)
+    ) {
+      t = intPart + "." + frac;
+    } else {
+      t = t.replace(/,/g, "");
+    }
+  } else if (hasDot) {
+    const parts = t.split(".");
+    if (
+      parts.length === 2 &&
+      parts[1]!.length === 3 &&
+      /^\d+$/.test(parts[0]!) &&
+      /^\d+$/.test(parts[1]!)
+    ) {
+      t = parts[0]! + parts[1]!;
+    }
+  }
+
+  const n = Number(t);
   return Number.isFinite(n) ? n : 0;
 }
 
