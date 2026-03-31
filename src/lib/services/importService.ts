@@ -22,13 +22,22 @@ export function getExpectedHamMaddeExcelColumns(): {
   return [
     {
       key: "Ham Madde Kodu",
-      aciklama: "Stok kodu (boşsa otomatik HM-… üretilir)",
+      aciklama: "Stok kodu — Excel’deki değer aynen kullanılır (zorunlu)",
     },
-    { key: "Ham Madde Adı", aciklama: "Tanım — zorunlu" },
-    { key: "Birim", aciklama: "kg, m, adet… (varsayılan adet)" },
+    { key: "Ham Madde Adı", aciklama: "Tanım (zorunlu)" },
+    {
+      key: "Birim",
+      aciklama: "Excel’de ne yazıyorsa o (kg, m, adet…); hücre boşsa adet",
+    },
     { key: "Min Stok", aciklama: "Opsiyonel" },
-    { key: "Mevcut Stok", aciklama: "Opsiyonel" },
-    { key: "Firma", aciklama: "Tedarikçü (opsiyonel, ilişki açılır)" },
+    {
+      key: "Mevcut Stok",
+      aciklama: "Depo miktarı — panelde Mevcut sütununa yansır (opsiyonel)",
+    },
+    {
+      key: "Firma",
+      aciklama: "Tedarikçü adı (zorunlu) — malzeme–tedarikçü ilişkisi açılır",
+    },
   ];
 }
 

@@ -134,12 +134,33 @@ export async function syncPartsFromImportBatch(
         continue;
       }
 
-      const codeInput = cell(rd, "Ham Madde Kodu");
-      const code = codeInput || materialCodeFromName(hmAd);
-      const unit = cell(rd, "Birim") || "adet";
+      const code = cell(rd, "Ham Madde Kodu");
+      if (!code) {
+        await supabase
+          .from("import_rows")
+          .update({
+            status: "hata",
+            message: "Ham Madde Kodu Excel’de zorunlu.",
+          })
+          .eq("id", row.id);
+        continue;
+      }
+
+      const unitCell = cell(rd, "Birim");
+      const unit = unitCell ? unitCell : "adet";
       const safeMin = parseOptionalNumber(cell(rd, "Min Stok"));
       const safeCur = parseOptionalNumber(cell(rd, "Mevcut Stok"));
       const firmaHm = cell(rd, "Firma");
+      if (!firmaHm) {
+        await supabase
+          .from("import_rows")
+          .update({
+            status: "hata",
+            message: "Firma (tedarikçü) zorunlu.",
+          })
+          .eq("id", row.id);
+        continue;
+      }
 
       let materialId: string | null = null;
 

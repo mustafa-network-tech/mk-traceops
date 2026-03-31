@@ -36,6 +36,27 @@ function matchCanonicalHeader(
   return null;
 }
 
+/** Ham sayfası: mevcut/min stok için yaygın başlık eşlemeleri. */
+const HAM_HEADER_SYNONYMS: Record<string, string> = {
+  "mevcut stok": "Mevcut Stok",
+  "güncel stok": "Mevcut Stok",
+  "eldeki stok": "Mevcut Stok",
+  "stok miktarı": "Mevcut Stok",
+  "min stok": "Min Stok",
+  "minimum stok": "Min Stok",
+  "tedarikçü": "Firma",
+  tedarikci: "Firma",
+  "satıcı": "Firma",
+  "satıcı firma": "Firma",
+};
+
+function matchHamCanonicalHeader(cellHeader: string): string | null {
+  const direct = matchCanonicalHeader(cellHeader, canonicalHamKeys());
+  if (direct) return direct;
+  const n = normalizeHeader(cellHeader);
+  return HAM_HEADER_SYNONYMS[n] ?? null;
+}
+
 export type PreparedImportRow = {
   rowIndex: number;
   rawData: Record<string, string>;
@@ -73,7 +94,7 @@ function resolveHamSheetName(workbook: XLSX.WorkBook): string | null {
 
 function parseSheetToRowsWithMap(
   sheet: XLSX.WorkSheet,
-  canonicalKeys: string[],
+  matchHeader: (cellHeader: string) => string | null,
 ): {
   headerRow: unknown[];
   rows: unknown[][];
@@ -87,7 +108,7 @@ function parseSheetToRowsWithMap(
   const headerRow = rows[0] ?? [];
   const colToCanonical: (string | null)[] = headerRow.map((h) =>
     typeof h === "string" || typeof h === "number"
-      ? matchCanonicalHeader(cellToString(h), canonicalKeys)
+      ? matchHeader(cellToString(h))
       : null,
   );
   return { headerRow, rows, colToCanonical };
@@ -142,7 +163,9 @@ export function parseProductionExcelBuffer(buf: ArrayBuffer): ExcelParseResult {
     headerRow: anaHeader,
     rows: anaRows,
     colToCanonical: anaColMap,
-  } = parseSheetToRowsWithMap(workbook.Sheets[anaSheetName]!, anaCanonical);
+  } = parseSheetToRowsWithMap(workbook.Sheets[anaSheetName]!, (h) =>
+    matchCanonicalHeader(h, anaCanonical),
+  );
 
   if (!anaColMap.some((c) => c === "Parça Kodu")) {
     return {
@@ -193,17 +216,31 @@ export function parseProductionExcelBuffer(buf: ArrayBuffer): ExcelParseResult {
 
   const hamSheet = resolveHamSheetName(workbook);
   if (hamSheet && workbook.Sheets[hamSheet]) {
-    const hamCanonical = canonicalHamKeys();
     const {
       headerRow: hamHeader,
       rows: hamRows,
       colToCanonical: hamColMap,
-    } = parseSheetToRowsWithMap(workbook.Sheets[hamSheet]!, hamCanonical);
+    } = parseSheetToRowsWithMap(
+      workbook.Sheets[hamSheet]!,
+      matchHamCanonicalHeader,
+    );
 
     if (!hamColMap.some((c) => c === "Ham Madde Adı")) {
       return {
         ok: false,
         error: `Ham madde sayfasında ("${hamSheet}") zorunlu sütun eksik: "Ham Madde Adı".`,
+      };
+    }
+    if (!hamColMap.some((c) => c === "Ham Madde Kodu")) {
+      return {
+        ok: false,
+        error: `Ham madde sayfasında ("${hamSheet}") zorunlu sütun eksik: "Ham Madde Kodu".`,
+      };
+    }
+    if (!hamColMap.some((c) => c === "Firma")) {
+      return {
+        ok: false,
+        error: `Ham madde sayfasında ("${hamSheet}") zorunlu sütun eksik: "Firma" (tedarikçü).`,
       };
     }
 
@@ -232,6 +269,28 @@ export function parseProductionExcelBuffer(buf: ArrayBuffer): ExcelParseResult {
           rawData,
           status: "hata",
           message: "Ham Madde Adı boş olamaz.",
+        });
+        continue;
+      }
+
+      const kod = (rawData["Ham Madde Kodu"] ?? "").trim();
+      if (!kod) {
+        prepared.push({
+          rowIndex: seq,
+          rawData,
+          status: "hata",
+          message: "Ham Madde Kodu zorunlu (Excel’den).",
+        });
+        continue;
+      }
+
+      const firmaHm = (rawData["Firma"] ?? "").trim();
+      if (!firmaHm) {
+        prepared.push({
+          rowIndex: seq,
+          rawData,
+          status: "hata",
+          message: "Firma (tedarikçü) zorunlu.",
         });
         continue;
       }
