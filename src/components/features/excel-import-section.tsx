@@ -9,7 +9,10 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EXCEL_MAX_BYTES } from "@/lib/services/excelParse";
-import { getExpectedExcelColumns } from "@/lib/services/importService";
+import {
+  getExpectedExcelColumns,
+  getExpectedHamMaddeExcelColumns,
+} from "@/lib/services/importService";
 
 export function ExcelImportSection() {
   const router = useRouter();
@@ -17,7 +20,8 @@ export function ExcelImportSection() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
-  const columns = getExpectedExcelColumns();
+  const columnsAna = getExpectedExcelColumns();
+  const columnsHam = getExpectedHamMaddeExcelColumns();
 
   const sendFile = useCallback(
     async (file: File) => {
@@ -73,7 +77,7 @@ export function ExcelImportSection() {
     <div>
       <PageHeader
         title="Excel aktarım"
-        description="Üretim listesi şablonu (.xlsx) yüklenir; satırlar Supabase import tablolarına kaydedilir. Zorunlu sütun: Parça Kodu."
+        description="İki çalışma sayfası kullanın: 1) Ana parçalar — üretim satırları. 2) Ham maddeler — ayrı stok kartları (sayfa adı örn. «Ham Maddeler»; yalnızca iki sayfa varsa ikinci sayfa otomatik ham madde kabul edilir)."
         breadcrumbs={[
           { label: "Kokpit", href: "/kokpit" },
           { label: "Excel aktarım" },
@@ -147,24 +151,44 @@ export function ExcelImportSection() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Beklenen sütunlar</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-2 text-sm">
-              {columns.map((c) => (
-                <li
-                  key={c.key}
-                  className="flex flex-col rounded-md border border-slate-100 bg-slate-50 px-3 py-2"
-                >
-                  <span className="font-mono text-xs text-slate-800">{c.key}</span>
-                  <span className="text-slate-600">{c.aciklama}</span>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
+        <div className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Sayfa 1 — Ana parçalar</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2 text-sm">
+                {columnsAna.map((c) => (
+                  <li
+                    key={c.key}
+                    className="flex flex-col rounded-md border border-slate-100 bg-slate-50 px-3 py-2"
+                  >
+                    <span className="font-mono text-xs text-slate-800">{c.key}</span>
+                    <span className="text-slate-600">{c.aciklama}</span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Sayfa 2 — Ham maddeler (opsiyonel)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2 text-sm">
+                {columnsHam.map((c) => (
+                  <li
+                    key={c.key}
+                    className="flex flex-col rounded-md border border-slate-100 bg-slate-50 px-3 py-2"
+                  >
+                    <span className="font-mono text-xs text-slate-800">{c.key}</span>
+                    <span className="text-slate-600">{c.aciklama}</span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

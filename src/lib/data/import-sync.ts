@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { EXCEL_ROW_KIND_KEY } from "@/lib/services/importService";
+
 /** Excel ham alanlarından metin (jsonb içinden de gelebilir). */
 function cell(raw: Record<string, unknown>, key: string): string {
   const v = raw[key];
@@ -17,9 +19,73 @@ function materialCodeFromName(name: string): string {
   return `HM-${slug || "OTO"}-${tail}`;
 }
 
+function parseOptionalNumber(s: string): number {
+  const n = Number(s.replace(",", "."));
+  return Number.isFinite(n) ? n : 0;
+}
+
+async function ensureMaterialSupplierLink(
+  supabase: SupabaseClient,
+  materialId: string,
+  firma: string,
+  batchId: string,
+): Promise<void> {
+  if (!firma.trim()) return;
+
+  let supplierId: string | null = null;
+  const { data: supHit } = await supabase
+    .from("suppliers")
+    .select("id")
+    .ilike("name", firma)
+    .limit(1)
+    .maybeSingle();
+
+  if (supHit?.id) {
+    supplierId = supHit.id as string;
+  } else {
+    const { data: supIns, error: supErr } = await supabase
+      .from("suppliers")
+      .insert({
+        name: firma,
+        notes: `Excel aktarımı (${batchId})`,
+      })
+      .select("id")
+      .single();
+    if (!supErr && supIns?.id) supplierId = supIns.id as string;
+  }
+
+  if (!supplierId) return;
+
+  const { data: relDup } = await supabase
+    .from("material_supplier_relations")
+    .select("id")
+    .eq("material_id", materialId)
+    .eq("supplier_id", supplierId)
+    .maybeSingle();
+
+  if (relDup) return;
+
+  const { count: matRelCount } = await supabase
+    .from("material_supplier_relations")
+    .select("*", { count: "exact", head: true })
+    .eq("material_id", materialId);
+
+  const n = matRelCount ?? 0;
+  await supabase.from("material_supplier_relations").insert({
+    material_id: materialId,
+    supplier_id: supplierId,
+    last_purchase_price: 0,
+    currency: "TRY",
+    last_purchase_date: new Date().toISOString().slice(0, 10),
+    is_primary: n === 0,
+    priority_order: n,
+  });
+}
+
 /**
  * import_rows (bekliyor) → assembly_groups + materials + parts + tedarikçi /
  * malzeme–tedarikçi ilişkisi (Firma doluysa) + satır güncelleme.
+ * Ham madde sayfası satırları yalnızca materials (+ isteğe bağlı ilişki) oluşturur.
  */
 export async function syncPartsFromImportBatch(
   supabase: SupabaseClient,
@@ -53,6 +119,131 @@ export async function syncPartsFromImportBatch(
 
   for (const row of rows ?? []) {
     const rd = row.raw_data as Record<string, unknown>;
+    const rowKind = (rd[EXCEL_ROW_KIND_KEY] as string) || "ana_parça";
+
+    if (rowKind === "ham_madde") {
+      const hmAd = cell(rd, "Ham Madde Adı");
+      if (!hmAd) {
+        await supabase
+          .from("import_rows")
+          .update({
+            status: "hata",
+            message: "Ham Madde Adı zorunlu.",
+          })
+          .eq("id", row.id);
+        continue;
+      }
+
+      const codeInput = cell(rd, "Ham Madde Kodu");
+      const code = codeInput || materialCodeFromName(hmAd);
+      const unit = cell(rd, "Birim") || "adet";
+      const safeMin = parseOptionalNumber(cell(rd, "Min Stok"));
+      const safeCur = parseOptionalNumber(cell(rd, "Mevcut Stok"));
+      const firmaHm = cell(rd, "Firma");
+
+      let materialId: string | null = null;
+
+      const { data: byCode } = await supabase
+        .from("materials")
+        .select("id")
+        .eq("code", code)
+        .maybeSingle();
+
+      if (byCode?.id) {
+        materialId = byCode.id as string;
+        const { error: upErr } = await supabase
+          .from("materials")
+          .update({
+            name: hmAd,
+            unit,
+            min_stock: safeMin,
+            current_stock: safeCur,
+          })
+          .eq("id", materialId);
+        if (upErr) {
+          await supabase
+            .from("import_rows")
+            .update({ status: "hata", message: upErr.message })
+            .eq("id", row.id);
+          continue;
+        }
+      } else {
+        const { data: byName } = await supabase
+          .from("materials")
+          .select("id")
+          .ilike("name", hmAd)
+          .limit(1)
+          .maybeSingle();
+
+        if (byName?.id) {
+          materialId = byName.id as string;
+          const { error: upErr } = await supabase
+            .from("materials")
+            .update({
+              code,
+              name: hmAd,
+              unit,
+              min_stock: safeMin,
+              current_stock: safeCur,
+            })
+            .eq("id", materialId);
+          if (upErr) {
+            await supabase
+              .from("import_rows")
+              .update({ status: "hata", message: upErr.message })
+              .eq("id", row.id);
+            continue;
+          }
+        } else {
+          const { data: ins, error: insErr } = await supabase
+            .from("materials")
+            .insert({
+              code,
+              name: hmAd,
+              type: "ham_madde",
+              unit,
+              min_stock: safeMin,
+              current_stock: safeCur,
+              active: true,
+              category_id: categoryId,
+              note: `Excel ham madde sayfası (${batchId})`,
+            })
+            .select("id")
+            .single();
+          if (insErr || !ins?.id) {
+            await supabase
+              .from("import_rows")
+              .update({
+                status: "hata",
+                message: insErr?.message ?? "Ham madde eklenemedi.",
+              })
+              .eq("id", row.id);
+            continue;
+          }
+          materialId = ins.id as string;
+        }
+      }
+
+      if (materialId) {
+        await ensureMaterialSupplierLink(
+          supabase,
+          materialId,
+          firmaHm,
+          batchId,
+        );
+      }
+
+      await supabase
+        .from("import_rows")
+        .update({
+          status: "işlendi",
+          message: null,
+          linked_part_id: null,
+        })
+        .eq("id", row.id);
+      continue;
+    }
+
     const montaj = cell(rd, "Montaj Grubu");
     const partCode = cell(rd, "Parça Kodu");
     if (!partCode) continue;
@@ -172,54 +363,7 @@ export async function syncPartsFromImportBatch(
     const partId = partIns.id as string;
 
     if (materialId && firma) {
-      let supplierId: string | null = null;
-      const { data: supHit } = await supabase
-        .from("suppliers")
-        .select("id")
-        .ilike("name", firma)
-        .limit(1)
-        .maybeSingle();
-
-      if (supHit?.id) {
-        supplierId = supHit.id as string;
-      } else {
-        const { data: supIns, error: supErr } = await supabase
-          .from("suppliers")
-          .insert({
-            name: firma,
-            notes: `Excel aktarımı (${batchId})`,
-          })
-          .select("id")
-          .single();
-        if (!supErr && supIns?.id) supplierId = supIns.id as string;
-      }
-
-      if (supplierId) {
-        const { data: relDup } = await supabase
-          .from("material_supplier_relations")
-          .select("id")
-          .eq("material_id", materialId)
-          .eq("supplier_id", supplierId)
-          .maybeSingle();
-
-        if (!relDup) {
-          const { count: matRelCount } = await supabase
-            .from("material_supplier_relations")
-            .select("*", { count: "exact", head: true })
-            .eq("material_id", materialId);
-
-          const n = matRelCount ?? 0;
-          await supabase.from("material_supplier_relations").insert({
-            material_id: materialId,
-            supplier_id: supplierId,
-            last_purchase_price: 0,
-            currency: "TRY",
-            last_purchase_date: new Date().toISOString().slice(0, 10),
-            is_primary: n === 0,
-            priority_order: n,
-          });
-        }
-      }
+      await ensureMaterialSupplierLink(supabase, materialId, firma, batchId);
     }
 
     await supabase
