@@ -19,9 +19,17 @@ type Row = {
   categoryName: string;
   supplierCount: number;
   critical: boolean;
+  /** Parça listesinde bu malzemeye bağlı quantity toplamı (Excel Adet özeti). */
+  partDemandQty?: number;
 };
 
-export function MaterialTable({ rows }: { rows: Row[] }) {
+type MaterialTableProps = {
+  rows: Row[];
+  /** Parça talebi sütununu göster (ham/sarf / birleşik liste). */
+  showPartDemand?: boolean;
+};
+
+export function MaterialTable({ rows, showPartDemand }: MaterialTableProps) {
   return (
     <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
       <Table>
@@ -32,6 +40,14 @@ export function MaterialTable({ rows }: { rows: Row[] }) {
             <TableHead>Tip</TableHead>
             <TableHead>Kategori</TableHead>
             <TableHead>Birim</TableHead>
+            {showPartDemand ? (
+              <TableHead
+                className="text-right"
+                title="Aktif parça kayıtlarında bu malzeme için Excel’deki Adet alanlarının toplamı (depo stoğu değildir)."
+              >
+                Parça talebi
+              </TableHead>
+            ) : null}
             <TableHead className="text-right">Min. stok</TableHead>
             <TableHead className="text-right">Mevcut</TableHead>
             <TableHead>Durum</TableHead>
@@ -40,7 +56,7 @@ export function MaterialTable({ rows }: { rows: Row[] }) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {rows.map(({ material: m, categoryName, supplierCount, critical }) => (
+          {rows.map(({ material: m, categoryName, supplierCount, critical, partDemandQty }) => (
             <TableRow key={m.id}>
               <TableCell className="font-mono text-xs font-medium">{m.code}</TableCell>
               <TableCell>
@@ -54,6 +70,13 @@ export function MaterialTable({ rows }: { rows: Row[] }) {
               </TableCell>
               <TableCell className="text-sm">{categoryName}</TableCell>
               <TableCell className="text-xs">{m.unit}</TableCell>
+              {showPartDemand ? (
+                <TableCell className="text-right font-mono text-sm tabular-nums">
+                  {partDemandQty != null && partDemandQty > 0
+                    ? formatNumber(partDemandQty, m.unit)
+                    : "—"}
+                </TableCell>
+              ) : null}
               <TableCell className="text-right tabular-nums text-sm">
                 {formatNumber(m.minStock)}
               </TableCell>

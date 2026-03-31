@@ -4,13 +4,15 @@ import {
   listMaterialCategories,
   listMaterialSupplierRelations,
   listMaterialsByType,
+  sumPartQuantitiesByMaterialId,
 } from "@/lib/data/supabase-data";
 
 export default async function SarfMalzemelerPage() {
-  const [materials, categories, rels] = await Promise.all([
+  const [materials, categories, rels, demandByMat] = await Promise.all([
     listMaterialsByType("sarf_malzeme"),
     listMaterialCategories(),
     listMaterialSupplierRelations(),
+    sumPartQuantitiesByMaterialId(),
   ]);
 
   const catById = new Map(categories.map((c) => [c.id, c]));
@@ -39,7 +41,7 @@ export default async function SarfMalzemelerPage() {
           { label: "Sarf malzemeler" },
         ]}
       />
-      <MaterialTable rows={rows} />
+      <MaterialTable rows={rows} showPartDemand />
     </div>
   );
 }

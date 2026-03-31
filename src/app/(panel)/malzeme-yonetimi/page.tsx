@@ -4,13 +4,15 @@ import {
   listMaterialCategories,
   listMaterialSupplierRelations,
   listMaterials,
+  sumPartQuantitiesByMaterialId,
 } from "@/lib/data/supabase-data";
 
 export default async function MalzemeYonetimiPage() {
-  const [materials, categories, rels] = await Promise.all([
+  const [materials, categories, rels, demandByMat] = await Promise.all([
     listMaterials(),
     listMaterialCategories(),
     listMaterialSupplierRelations(),
+    sumPartQuantitiesByMaterialId(),
   ]);
 
   const catById = new Map(categories.map((c) => [c.id, c]));
@@ -33,13 +35,13 @@ export default async function MalzemeYonetimiPage() {
     <div>
       <PageHeader
         title="Malzeme yönetimi"
-        description="Ham madde ve sarf malzemelerin birleşik görünümü: stok, kategori, tedarikçi ilişki sayısı ve kritik uyarılar."
+        description="Birleşik liste. Parça talebi: ana parça satırlarındaki Adet toplamı. Mevcut: depo stoğu."
         breadcrumbs={[
           { label: "Kokpit", href: "/kokpit" },
           { label: "Malzeme" },
         ]}
       />
-      <MaterialTable rows={rows} />
+      <MaterialTable rows={rows} showPartDemand />
     </div>
   );
 }

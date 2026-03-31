@@ -591,6 +591,19 @@ export async function listParts(): Promise<Part[]> {
   return (data as Row[] | null)?.map(mapPart) ?? [];
 }
 
+/** Parçalardaki quantity toplamı (malzeme başına). Depo stoğu değil; Excel Adet satırlarının özeti. */
+export async function sumPartQuantitiesByMaterialId(): Promise<Map<string, number>> {
+  const parts = await listParts();
+  const m = new Map<string, number>();
+  for (const p of parts) {
+    if (!p.materialId) continue;
+    const q = Number(p.quantity);
+    if (!Number.isFinite(q)) continue;
+    m.set(p.materialId, (m.get(p.materialId) ?? 0) + q);
+  }
+  return m;
+}
+
 export async function getPart(id: string): Promise<Part | undefined> {
   const c = await client();
   if (!c) return undefined;
