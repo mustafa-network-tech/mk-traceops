@@ -12,6 +12,7 @@ import { EXCEL_MAX_BYTES } from "@/lib/services/excelParse";
 import {
   getExpectedExcelColumns,
   getExpectedHamMaddeExcelColumns,
+  getExpectedListeExcelColumns,
 } from "@/lib/services/importService";
 
 export function ExcelImportSection() {
@@ -20,6 +21,7 @@ export function ExcelImportSection() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const columnsListe = getExpectedListeExcelColumns();
   const columnsAna = getExpectedExcelColumns();
   const columnsHam = getExpectedHamMaddeExcelColumns();
 
@@ -77,14 +79,14 @@ export function ExcelImportSection() {
     <div>
       <PageHeader
         title="Excel aktarım"
-        description="İki çalışma sayfası kullanın: 1) Ana parçalar — üretim satırları. 2) Ham maddeler — ayrı stok kartları (sayfa adı örn. «Ham Maddeler»; yalnızca iki sayfa varsa ikinci sayfa otomatik ham madde kabul edilir)."
+        description="Birincil format: Excel’deki LİSTE başlıkları (KODU, GRUP, HAMMADDE, ROTA…). Sistem bu isimlere göre okur ve kaydeder; tüm sütunlar aktarım kaydında kalır. Formüller: kayıtlı hesaplanmış değer. İsteğe bağlı ham madde sayfası. Geçmiş dosyalar için eski «Parça Kodu» şablonu yedeklenir."
         breadcrumbs={[
           { label: "Kokpit", href: "/kokpit" },
           { label: "Excel aktarım" },
         ]}
       />
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
         <Card>
           <CardHeader>
             <CardTitle>Dosya yükleme</CardTitle>
@@ -151,10 +153,28 @@ export function ExcelImportSection() {
           </CardContent>
         </Card>
 
-        <div className="space-y-4">
+        <div className="space-y-4 xl:col-span-2">
           <Card>
             <CardHeader>
-              <CardTitle>Sayfa 1 — Ana parçalar</CardTitle>
+              <CardTitle>Birincil: Excel LİSTE başlıkları (KODU, GRUP, …)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="max-h-[min(70vh,520px)] space-y-2 overflow-y-auto text-sm">
+                {columnsListe.map((c) => (
+                  <li
+                    key={c.key}
+                    className="flex flex-col rounded-md border border-slate-100 bg-slate-50 px-3 py-2"
+                  >
+                    <span className="font-mono text-xs text-slate-800">{c.key}</span>
+                    <span className="text-slate-600">{c.aciklama}</span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Eski şablon — Sayfa 1 ana parçalar</CardTitle>
             </CardHeader>
             <CardContent>
               <ul className="space-y-2 text-sm">
@@ -172,7 +192,7 @@ export function ExcelImportSection() {
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle>Sayfa 2 — Ham maddeler (opsiyonel)</CardTitle>
+              <CardTitle>Ham maddeler — ayrı sayfa (opsiyonel)</CardTitle>
             </CardHeader>
             <CardContent>
               <ul className="space-y-2 text-sm">

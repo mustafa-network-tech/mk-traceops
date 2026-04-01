@@ -9,6 +9,52 @@ function cell(raw: Record<string, unknown>, key: string): string {
   return String(v).trim();
 }
 
+/** MK3Ops LİSTE başlıkları birincil; eski «Parça Kodu» şablonu yedek. */
+function anaPartCode(rd: Record<string, unknown>): string {
+  return cell(rd, "KODU") || cell(rd, "Parça Kodu");
+}
+
+function anaMontajGrubu(rd: Record<string, unknown>): string {
+  return cell(rd, "GRUP") || cell(rd, "Montaj Grubu");
+}
+
+function anaAciklama(rd: Record<string, unknown>): string {
+  return cell(rd, "AÇIKLAMA") || cell(rd, "Açıklama");
+}
+
+function anaMalzeme(rd: Record<string, unknown>): string {
+  return cell(rd, "HAMMADDE") || cell(rd, "Malzeme");
+}
+
+function anaOlcu(rd: Record<string, unknown>): string {
+  const olcu = cell(rd, "HAMMADDE ÖLÇÜSÜ");
+  const sekil = cell(rd, "MALZEME ŞEKLİ");
+  const parts = [olcu, sekil].filter(Boolean);
+  const joined = parts.join(" · ");
+  return joined || cell(rd, "Ölçü");
+}
+
+function anaAdetRaw(rd: Record<string, unknown>): string {
+  return cell(rd, "ADET") || cell(rd, "Adet");
+}
+
+function anaOperasyon(rd: Record<string, unknown>): string {
+  return (
+    cell(rd, "ROTA") ||
+    cell(rd, "İMALAT ŞEKLİ") ||
+    cell(rd, "İŞLEM TÜRÜ") ||
+    cell(rd, "Operasyon")
+  );
+}
+
+function anaFirma(rd: Record<string, unknown>): string {
+  return (
+    cell(rd, "HMD FİRMASI") ||
+    cell(rd, "FASON FİRMA") ||
+    cell(rd, "Firma")
+  );
+}
+
 function materialCodeFromName(name: string): string {
   const slug = name
     .trim()
@@ -303,8 +349,8 @@ export async function syncPartsFromImportBatch(
       continue;
     }
 
-    const montaj = cell(rd, "Montaj Grubu");
-    const partCode = cell(rd, "Parça Kodu");
+    const montaj = anaMontajGrubu(rd);
+    const partCode = anaPartCode(rd);
     if (!partCode) continue;
 
     let assemblyGroupId: string | null = null;
@@ -343,7 +389,7 @@ export async function syncPartsFromImportBatch(
     }
 
     let materialId: string | null = null;
-    const malzemeAd = cell(rd, "Malzeme");
+    const malzemeAd = anaMalzeme(rd);
     if (malzemeAd) {
       const { data: matHit } = await supabase
         .from("materials")
@@ -375,7 +421,7 @@ export async function syncPartsFromImportBatch(
     }
 
     let assignedCompanyId: string | null = null;
-    const firma = cell(rd, "Firma");
+    const firma = anaFirma(rd);
     if (firma) {
       const { data: co } = await supabase
         .from("companies")
@@ -386,9 +432,7 @@ export async function syncPartsFromImportBatch(
       if (co?.id) assignedCompanyId = co.id as string;
     }
 
-    const qtyRaw = cell(rd, "Adet");
-    const quantity = qtyRaw ? Number(qtyRaw.replace(",", ".")) : 0;
-    const safeQty = Number.isFinite(quantity) ? quantity : 0;
+    const safeQty = parseOptionalNumber(anaAdetRaw(rd));
 
     const { data: partIns, error: partErr } = await supabase
       .from("parts")
@@ -396,11 +440,11 @@ export async function syncPartsFromImportBatch(
         import_batch_id: batchId,
         import_row_id: row.id,
         part_code: partCode,
-        description: cell(rd, "Açıklama"),
+        description: anaAciklama(rd),
         material_id: materialId,
-        dimensions: cell(rd, "Ölçü") || null,
+        dimensions: anaOlcu(rd) || null,
         quantity: safeQty,
-        operation: cell(rd, "Operasyon"),
+        operation: anaOperasyon(rd),
         assigned_company_id: assignedCompanyId,
         assembly_group_id: assemblyGroupId,
         type: "ana_parça",
