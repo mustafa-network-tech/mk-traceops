@@ -16,7 +16,15 @@ export function getExpectedListeExcelColumns(): { key: string; aciklama: string 
     { key: "MLZM HMD TÜRÜ", aciklama: "Malzeme-hammadde türü" },
     { key: "SATINALMA TÜRÜ", aciklama: "Satın alma sınıfı" },
     { key: "İŞLEM TÜRÜ", aciklama: "İmalat / satın alma vb.; Operasyon yedeği" },
-    { key: "STOK MİKTARI", aciklama: "Stok (şimdilik yalnızca önizleme; ayrı stok kartı yok)" },
+    {
+      key: "BİRİM",
+      aciklama: "Ham madde birimi (kg, adet, m…); boşsa HMD AĞIRLIK/ölçüden tahmin",
+    },
+    { key: "MIN STOK", aciklama: "Ham madde kartı minimum stok (opsiyonel)" },
+    {
+      key: "STOK MİKTARI",
+      aciklama: "Ham madde mevcut stok — kartta Mevcut alanına yazılır (doluysa)",
+    },
     { key: "HMD FİRMASI", aciklama: "Hammadde tedarikçüsü (Firma)" },
     { key: "HAMMADDE DURUMU", aciklama: "Durum notu" },
     { key: "MALZEME ÖZELLİK", aciklama: "Özellik" },
@@ -42,7 +50,11 @@ export function getExpectedExcelColumns(): { key: string; aciklama: string }[] {
   return [
     { key: "Parça Kodu", aciklama: "Benzersiz parça kodu (zorunlu)" },
     { key: "Açıklama", aciklama: "Parça tanımı" },
-    { key: "Malzeme", aciklama: "Kullanılan ham madde adı (stok kartına bağlanır)" },
+    {
+      key: "Malzeme",
+      aciklama:
+        "Ham madde adı (stok kartı). Excel’de «Ş» veya «Malzeme cinsi» başlığı da bu alana eşlenir.",
+    },
     { key: "Ölçü", aciklama: "Boyutlar veya profil bilgisi" },
     { key: "Adet", aciklama: "Planlanan miktar" },
     { key: "Operasyon", aciklama: "Kesim, kaynak, montaj vb." },

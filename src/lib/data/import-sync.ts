@@ -55,6 +55,45 @@ function anaFirma(rd: Record<string, unknown>): string {
   );
 }
 
+/** LİSTE: Excel’de açık birim; yoksa ağırlık/ölçü ipucundan tahmin. */
+function listeBirimExplicit(rd: Record<string, unknown>): string {
+  return cell(rd, "BİRİM") || cell(rd, "Birim");
+}
+
+function listeMaterialUnit(rd: Record<string, unknown>): string {
+  const u = listeBirimExplicit(rd);
+  if (u) return u.slice(0, 64);
+  if (cell(rd, "HMD AĞIRLIK").trim()) return "kg";
+  const hint = `${cell(rd, "MLZM HMD TÜRÜ")} ${cell(rd, "HAMMADDE ÖLÇÜSÜ")}`.toLocaleLowerCase(
+    "tr-TR",
+  );
+  if (/\b(kg|kilo|kilogram)\b/.test(hint)) return "kg";
+  if (/\b(m³|m3|metreküp)\b/.test(hint)) return "m³";
+  if (/\b(mm|milimetre)\b/.test(hint)) return "mm";
+  if (/\b(mt|metre|meter|\bm\b)\b/.test(hint)) return "m";
+  return "adet";
+}
+
+/** Mevcut ham madde: STOK MİKTARI / BİRİM / MIN STOK Excel’den doğrudan yazar (toplama yok; ileride açılabilir). */
+async function patchListeHamMaddeFromRow(
+  supabase: SupabaseClient,
+  materialId: string,
+  rd: Record<string, unknown>,
+): Promise<void> {
+  const up: Record<string, unknown> = {};
+  if (listeBirimExplicit(rd).trim()) {
+    up.unit = listeMaterialUnit(rd);
+  }
+  if (cell(rd, "STOK MİKTARI").trim() !== "") {
+    up.current_stock = parseOptionalNumber(cell(rd, "STOK MİKTARI"));
+  }
+  if (cell(rd, "MIN STOK").trim() !== "") {
+    up.min_stock = parseOptionalNumber(cell(rd, "MIN STOK"));
+  }
+  if (Object.keys(up).length === 0) return;
+  await supabase.from("materials").update(up).eq("id", materialId);
+}
+
 function materialCodeFromName(name: string): string {
   const slug = name
     .trim()
@@ -391,6 +430,16 @@ export async function syncPartsFromImportBatch(
     let materialId: string | null = null;
     const malzemeAd = anaMalzeme(rd);
     if (malzemeAd) {
+      const unitNew = listeMaterialUnit(rd);
+      const stockExplicit = cell(rd, "STOK MİKTARI").trim() !== "";
+      const initialStock = stockExplicit
+        ? parseOptionalNumber(cell(rd, "STOK MİKTARI"))
+        : 0;
+      const minExplicit = cell(rd, "MIN STOK").trim() !== "";
+      const initialMin = minExplicit
+        ? parseOptionalNumber(cell(rd, "MIN STOK"))
+        : 0;
+
       const { data: matHit } = await supabase
         .from("materials")
         .select("id")
@@ -400,6 +449,7 @@ export async function syncPartsFromImportBatch(
 
       if (matHit?.id) {
         materialId = matHit.id as string;
+        await patchListeHamMaddeFromRow(supabase, materialId, rd);
       } else {
         const { data: matIns, error: matErr } = await supabase
           .from("materials")
@@ -407,12 +457,12 @@ export async function syncPartsFromImportBatch(
             code: materialCodeFromName(malzemeAd),
             name: malzemeAd,
             type: "ham_madde",
-            unit: "adet",
-            min_stock: 0,
-            current_stock: 0,
+            unit: unitNew,
+            min_stock: initialMin,
+            current_stock: initialStock,
             active: true,
             category_id: categoryId,
-            note: `Excel aktarımı (${batchId})`,
+            note: `LİSTE Excel (${batchId})`,
           })
           .select("id")
           .single();

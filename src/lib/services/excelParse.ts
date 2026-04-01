@@ -53,6 +53,21 @@ function matchCanonicalHeader(
   return null;
 }
 
+/** Eski ana parça sayfası: kısa başlık eş anlamlıları → dahili anahtar (raw_data’da Malzeme). */
+const ANA_HEADER_SYNONYMS: Record<string, string> = {
+  /** Bazı şablonlarda malzeme sütunu tek harf */
+  ş: "Malzeme",
+  "malzeme cinsi": "Malzeme",
+  "ham madde": "Malzeme",
+};
+
+function matchAnaCanonicalHeader(cellHeader: string): string | null {
+  const direct = matchCanonicalHeader(cellHeader, canonicalAnaParcaKeys());
+  if (direct) return direct;
+  const n = normalizeHeader(cellHeader);
+  return ANA_HEADER_SYNONYMS[n] ?? null;
+}
+
 /** Ham sayfası: şablondan sapmış başlıklar (normalizeHeader çıktısı → kanonik anahtar). */
 const HAM_HEADER_SYNONYMS: Record<string, string> = {
   "mevcut stok": "Mevcut Stok",
@@ -278,6 +293,66 @@ function parseListeSheetRows(
   return { headerRow, allRows, colToCanonical, headerRowIndex: bestIdx };
 }
 
+const ANA_HEADER_SCORE_KEYS = [
+  "Parça Kodu",
+  "Açıklama",
+  "Adet",
+] as const;
+
+/** Üstte not satırı olan eski şablonlar: gerçek başlık satırını ilk 15 satırda ara. */
+function parseAnaSheetRows(
+  sheet: XLSX.WorkSheet,
+  matchHeader: (cellHeader: string) => string | null,
+): {
+  headerRow: unknown[];
+  allRows: unknown[][];
+  colToCanonical: (string | null)[];
+  headerRowIndex: number;
+} {
+  const allRows = XLSX.utils.sheet_to_json<(string | number | null)[]>(sheet, {
+    header: 1,
+    defval: "",
+    raw: false,
+  }) as unknown[][];
+
+  if (allRows.length === 0) {
+    return {
+      headerRow: [],
+      allRows: [],
+      colToCanonical: [],
+      headerRowIndex: 0,
+    };
+  }
+
+  const scan = Math.min(15, allRows.length);
+  let bestIdx = 0;
+  let bestScore = -1;
+  for (let r = 0; r < scan; r++) {
+    const row = allRows[r] ?? [];
+    const colMap = row.map((h) =>
+      typeof h === "string" || typeof h === "number"
+        ? matchHeader(cellToString(h))
+        : null,
+    );
+    const score = ANA_HEADER_SCORE_KEYS.filter((req) =>
+      colMap.some((c) => c === req),
+    ).length;
+    if (score > bestScore) {
+      bestScore = score;
+      bestIdx = r;
+    }
+  }
+
+  const headerRow = allRows[bestIdx] ?? [];
+  const colToCanonical = headerRow.map((h) =>
+    typeof h === "string" || typeof h === "number"
+      ? matchHeader(cellToString(h))
+      : null,
+  );
+
+  return { headerRow, allRows, colToCanonical, headerRowIndex: bestIdx };
+}
+
 function findListeSheetInWorkbook(workbook: XLSX.WorkBook): {
   sheetName: string;
   headerRow: unknown[];
@@ -301,9 +376,7 @@ function firstSheetHasLegacyParcaKodu(workbook: XLSX.WorkBook): boolean {
   if (!n0) return false;
   const sheet = workbook.Sheets[n0];
   if (!sheet) return false;
-  const { colToCanonical } = parseSheetToRowsWithMap(sheet, (h) =>
-    matchCanonicalHeader(h, canonicalAnaParcaKeys()),
-  );
+  const { colToCanonical } = parseAnaSheetRows(sheet, matchAnaCanonicalHeader);
   return colToCanonical.some((c) => c === "Parça Kodu");
 }
 
@@ -575,14 +648,12 @@ export function parseProductionExcelBuffer(buf: ArrayBuffer): ExcelParseResult {
       });
     }
   } else {
-    const anaCanonical = canonicalAnaParcaKeys();
     const {
       headerRow: anaHeader,
-      rows: anaRows,
+      allRows: anaRows,
       colToCanonical: anaColMap,
-    } = parseSheetToRowsWithMap(workbook.Sheets[firstName]!, (h) =>
-      matchCanonicalHeader(h, anaCanonical),
-    );
+      headerRowIndex: anaHeaderIdx,
+    } = parseAnaSheetRows(workbook.Sheets[firstName]!, matchAnaCanonicalHeader);
 
     if (!anaColMap.some((c) => c === "Parça Kodu")) {
       return {
@@ -592,7 +663,7 @@ export function parseProductionExcelBuffer(buf: ArrayBuffer): ExcelParseResult {
       };
     }
 
-    for (let i = 1; i < anaRows.length; i++) {
+    for (let i = anaHeaderIdx + 1; i < anaRows.length; i++) {
       const line = anaRows[i];
       const { rawData, anyNonEmpty } = buildRawDataLine(
         line as unknown[] | undefined,

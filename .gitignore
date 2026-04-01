@@ -27,6 +27,7 @@
 # Yerel MK3Ops LİSTE örnekleri (referans .xlsx repoda tutulmaz; şablon kodda tanımlıdır)
 VERİ.xlsx
 veri.xlsx
+uretim_parca_hammadde_listesi*.xlsx
 
 # debug
 npm-debug.log*
