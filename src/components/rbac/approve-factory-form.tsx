@@ -11,7 +11,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export function ApproveFactoryForm({ requestId }: { requestId: string }) {
+export function ApproveFactoryForm({
+  requestId,
+  suggestedEmail,
+  suggestedFirstName,
+  suggestedLastName,
+  lockApplicantEmail,
+}: {
+  requestId: string;
+  suggestedEmail?: string;
+  suggestedFirstName?: string;
+  suggestedLastName?: string;
+  /** Kendi kayıt olan başvuruda e-posta başvuru ile aynı kalmalı */
+  lockApplicantEmail?: boolean;
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
@@ -34,13 +47,22 @@ export function ApproveFactoryForm({ requestId }: { requestId: string }) {
             globalThis.alert(r.error);
             return;
           }
-          globalThis.alert("Fabrika onaylandı ve ilk yönetici oluşturuldu.");
+          globalThis.alert(
+            lockApplicantEmail
+              ? "Fabrika onaylandı. Başvuran kullanıcı fabrika yöneticisi olarak atandı."
+              : "Fabrika onaylandı ve ilk yönetici oluşturuldu.",
+          );
           router.refresh();
         });
       }}
     >
       <p className="sm:col-span-2 text-xs font-medium text-slate-700">
         İlk fabrika yöneticisi
+        {lockApplicantEmail ? (
+          <span className="ml-1 font-normal text-slate-500">
+            (kayıtlı başvuru — e-posta başvuru ile aynı olmalı)
+          </span>
+        ) : null}
       </p>
       <div className="space-y-1.5">
         <Label htmlFor={`email-${requestId}`}>E-posta</Label>
@@ -50,6 +72,9 @@ export function ApproveFactoryForm({ requestId }: { requestId: string }) {
           type="email"
           required
           placeholder="yonetici@firma.com"
+          defaultValue={suggestedEmail ?? ""}
+          readOnly={Boolean(lockApplicantEmail)}
+          className={lockApplicantEmail ? "bg-slate-50" : undefined}
         />
       </div>
       <div className="space-y-1.5">
@@ -58,11 +83,21 @@ export function ApproveFactoryForm({ requestId }: { requestId: string }) {
       </div>
       <div className="space-y-1.5">
         <Label htmlFor={`fn-${requestId}`}>Ad</Label>
-        <Input id={`fn-${requestId}`} name="firstName" required />
+        <Input
+          id={`fn-${requestId}`}
+          name="firstName"
+          required
+          defaultValue={suggestedFirstName ?? ""}
+        />
       </div>
       <div className="space-y-1.5">
         <Label htmlFor={`ln-${requestId}`}>Soyad</Label>
-        <Input id={`ln-${requestId}`} name="lastName" required />
+        <Input
+          id={`ln-${requestId}`}
+          name="lastName"
+          required
+          defaultValue={suggestedLastName ?? ""}
+        />
       </div>
       <div className="space-y-1.5 sm:col-span-2">
         <Label htmlFor={`pkg-${requestId}`}>Paket / lisans etiketi</Label>
@@ -75,7 +110,11 @@ export function ApproveFactoryForm({ requestId }: { requestId: string }) {
       </div>
       <div className="flex flex-wrap gap-2 sm:col-span-2">
         <Button type="submit" disabled={pending}>
-          {pending ? "Onaylanıyor…" : "Onayla ve yöneticiyi oluştur"}
+          {pending
+            ? "Onaylanıyor…"
+            : lockApplicantEmail
+              ? "Onayla ve fabrikayı aç"
+              : "Onayla ve yöneticiyi oluştur"}
         </Button>
         <Button
           type="button"

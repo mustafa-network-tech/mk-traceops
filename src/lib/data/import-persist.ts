@@ -1,3 +1,4 @@
+import { requireOperationalFactoryId } from "@/lib/data/operational-context";
 import { syncPartsFromImportBatch } from "@/lib/data/import-sync";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { ImportBatchStatus } from "@/lib/types/models";
@@ -15,6 +16,10 @@ export async function persistExcelImport(
     errorCount === 0 ? "tamamlandı" : "kısmi_hata";
 
   const supabase = await createSupabaseServerClient();
+  const factoryId = await requireOperationalFactoryId();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   const { data: batch, error: batchErr } = await supabase
     .from("import_batches")
@@ -24,7 +29,8 @@ export async function persistExcelImport(
       success_count: successCount,
       error_count: errorCount,
       status,
-      uploaded_by_user_id: null,
+      uploaded_by_user_id: user?.id ?? null,
+      factory_id: factoryId,
     })
     .select("id")
     .single();

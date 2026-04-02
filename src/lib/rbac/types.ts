@@ -33,6 +33,10 @@ export interface FactoryRequest {
   requestedSlug: string;
   applicantEmail: string;
   applicantName: string;
+  /** Kayıt formu ile gelen başvurular için auth.users.id */
+  applicantUserId?: string | null;
+  applicantFirstName?: string | null;
+  applicantLastName?: string | null;
   status: FactoryRequestStatus;
   createdAt: string;
 }

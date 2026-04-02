@@ -1,3 +1,4 @@
+import { getOperationalFactoryId } from "@/lib/data/operational-context";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type {
@@ -74,12 +75,16 @@ export async function listImportBatches(): Promise<ImportBatch[]> {
     return [];
   }
 
+  const factoryId = await getOperationalFactoryId();
+  if (!factoryId) return [];
+
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("import_batches")
     .select(
       "id, file_name, uploaded_by_user_id, row_count, success_count, error_count, status, notes, created_at",
     )
+    .eq("factory_id", factoryId)
     .order("created_at", { ascending: false });
 
   if (error) throw new Error(error.message);
@@ -93,6 +98,9 @@ export async function getImportBatchById(
     return null;
   }
 
+  const factoryId = await getOperationalFactoryId();
+  if (!factoryId) return null;
+
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("import_batches")
@@ -100,6 +108,7 @@ export async function getImportBatchById(
       "id, file_name, uploaded_by_user_id, row_count, success_count, error_count, status, notes, created_at",
     )
     .eq("id", id)
+    .eq("factory_id", factoryId)
     .maybeSingle();
 
   if (error) throw new Error(error.message);
@@ -113,6 +122,9 @@ export async function listImportRowsForBatch(
   if (!isSupabaseConfigured()) {
     return [];
   }
+
+  const factoryId = await getOperationalFactoryId();
+  if (!factoryId) return [];
 
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase

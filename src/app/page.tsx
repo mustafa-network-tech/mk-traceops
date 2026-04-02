@@ -27,5 +27,5 @@ export default async function Home() {
     redirect("/kokpit");
   }
 
-  redirect("/giris");
+  redirect("/basvuru-bekleniyor");
 }

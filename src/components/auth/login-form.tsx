@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -71,6 +72,12 @@ export function LoginForm() {
       <Button type="submit" className="w-full" disabled={pending}>
         {pending ? "Giriş yapılıyor…" : "Giriş yap"}
       </Button>
+      <p className="text-center text-xs text-slate-600">
+        Yeni fabrika mı?{" "}
+        <Link href="/kayit" className="text-violet-700 underline-offset-2 hover:underline">
+          Başvuru oluştur
+        </Link>
+      </p>
     </form>
   );
 }

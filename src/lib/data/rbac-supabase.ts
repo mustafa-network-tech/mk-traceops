@@ -194,15 +194,40 @@ export async function listAllFactoryRequests(): Promise<FactoryRequest[]> {
     .select("*")
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
-  return (data as Record<string, unknown>[]).map((r) => ({
+  return (data as Record<string, unknown>[]).map(mapFactoryRequestRow);
+}
+
+function mapFactoryRequestRow(r: Record<string, unknown>): FactoryRequest {
+  return {
     id: r.id as string,
     requestedFactoryName: r.requested_factory_name as string,
     requestedSlug: r.requested_slug as string,
     applicantEmail: r.applicant_email as string,
     applicantName: r.applicant_name as string,
+    applicantUserId: (r.applicant_user_id as string | null | undefined) ?? null,
+    applicantFirstName: (r.applicant_first_name as string | null | undefined) ?? null,
+    applicantLastName: (r.applicant_last_name as string | null | undefined) ?? null,
     status: r.status as FactoryRequest["status"],
     createdAt: r.created_at as string,
-  }));
+  };
+}
+
+/** Oturum açmış başvuranın son fabrika talebi (bekleyen veya geçmiş). */
+export async function getLatestFactoryRequestForAuthUser(
+  authUserId: string,
+): Promise<FactoryRequest | null> {
+  const c = await db();
+  if (!c) return null;
+  const { data, error } = await c
+    .from("factory_registration_requests")
+    .select("*")
+    .eq("applicant_user_id", authUserId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) return null;
+  return mapFactoryRequestRow(data as Record<string, unknown>);
 }
 
 export async function listPendingFactoryRequests(): Promise<FactoryRequest[]> {
@@ -245,7 +270,7 @@ export async function approveFactoryRequest(params: {
     return {
       ok: false,
       error:
-        "İlk yönetici oluşturmak için SUPABASE_SERVICE_ROLE_KEY (Auth Admin) gerekli.",
+        "Fabrika onayı için SUPABASE_SERVICE_ROLE_KEY (Auth Admin) gerekli.",
     };
   }
 
@@ -258,8 +283,13 @@ export async function approveFactoryRequest(params: {
   if (re) return { ok: false, error: re.message };
   if (!req) return { ok: false, error: "Talep bulunamadı veya işlenmiş." };
 
-  const slug = (req as { requested_slug: string }).requested_slug;
-  const name = (req as { requested_factory_name: string }).requested_factory_name;
+  const row = req as Record<string, unknown>;
+  const slug = row.requested_slug as string;
+  const name = row.requested_factory_name as string;
+  const reqEmail = String(row.applicant_email ?? "")
+    .trim()
+    .toLowerCase();
+  const applicantUserId = row.applicant_user_id as string | null | undefined;
 
   const { data: slugHit } = await d
     .from("factories")
@@ -268,22 +298,46 @@ export async function approveFactoryRequest(params: {
     .maybeSingle();
   if (slugHit) return { ok: false, error: "Bu slug zaten kullanılıyor." };
 
-  const tempPassword =
-    `${crypto.randomUUID().replaceAll("-", "")}Aa1!`;
+  let newUserId: string;
+  let removeAuthUserOnFailure: boolean;
 
-  const { data: authData, error: authErr } = await adm.auth.admin.createUser({
-    email: params.firstAdminEmail.trim().toLowerCase(),
-    password: tempPassword,
-    email_confirm: true,
-    user_metadata: {
-      first_name: params.firstAdminFirstName.trim(),
-      last_name: params.firstAdminLastName.trim(),
-    },
-  });
-  if (authErr || !authData.user) {
-    return { ok: false, error: authErr?.message ?? "Auth kullanıcı oluşturulamadı." };
+  if (applicantUserId) {
+    const { data: existingAuth, error: gaErr } =
+      await adm.auth.admin.getUserById(applicantUserId);
+    if (gaErr || !existingAuth.user) {
+      return { ok: false, error: "Başvuran Auth kullanıcısı bulunamadı." };
+    }
+    const authEmail = (existingAuth.user.email ?? "").trim().toLowerCase();
+    if (authEmail !== reqEmail) {
+      return { ok: false, error: "Auth e-postası talep kaydı ile uyuşmuyor." };
+    }
+    const formEmail = params.firstAdminEmail.trim().toLowerCase();
+    if (formEmail !== reqEmail) {
+      return {
+        ok: false,
+        error:
+          "Onay formundaki e-posta, başvurudaki e-posta ile birebir aynı olmalı.",
+      };
+    }
+    newUserId = applicantUserId;
+    removeAuthUserOnFailure = false;
+  } else {
+    const tempPassword = `${crypto.randomUUID().replaceAll("-", "")}Aa1!`;
+    const { data: authData, error: authErr } = await adm.auth.admin.createUser({
+      email: params.firstAdminEmail.trim().toLowerCase(),
+      password: tempPassword,
+      email_confirm: true,
+      user_metadata: {
+        first_name: params.firstAdminFirstName.trim(),
+        last_name: params.firstAdminLastName.trim(),
+      },
+    });
+    if (authErr || !authData.user) {
+      return { ok: false, error: authErr?.message ?? "Auth kullanıcı oluşturulamadı." };
+    }
+    newUserId = authData.user.id;
+    removeAuthUserOnFailure = true;
   }
-  const newUserId = authData.user.id;
 
   const now = new Date().toISOString();
   const pkg = params.packageStatus?.trim() || "trial";
@@ -301,15 +355,18 @@ export async function approveFactoryRequest(params: {
     .select("id")
     .single();
   if (fe || !fac) {
-    await adm.auth.admin.deleteUser(newUserId);
+    if (removeAuthUserOnFailure) {
+      await adm.auth.admin.deleteUser(newUserId);
+    }
     return { ok: false, error: fe?.message ?? "Fabrika oluşturulamadı." };
   }
   const factoryId = fac.id as string;
 
+  const profileEmail = params.firstAdminEmail.trim().toLowerCase();
   const { error: pe } = await d.from("profiles").insert({
     id: newUserId,
     factory_id: factoryId,
-    email: params.firstAdminEmail.trim().toLowerCase(),
+    email: profileEmail,
     first_name: params.firstAdminFirstName.trim(),
     last_name: params.firstAdminLastName.trim(),
     phone: params.firstAdminPhone?.trim() ?? null,
@@ -318,7 +375,9 @@ export async function approveFactoryRequest(params: {
   });
   if (pe) {
     await d.from("factories").delete().eq("id", factoryId);
-    await adm.auth.admin.deleteUser(newUserId);
+    if (removeAuthUserOnFailure) {
+      await adm.auth.admin.deleteUser(newUserId);
+    }
     return { ok: false, error: pe.message };
   }
 
@@ -331,7 +390,9 @@ export async function approveFactoryRequest(params: {
   if (se) {
     await d.from("profiles").delete().eq("id", newUserId);
     await d.from("factories").delete().eq("id", factoryId);
-    await adm.auth.admin.deleteUser(newUserId);
+    if (removeAuthUserOnFailure) {
+      await adm.auth.admin.deleteUser(newUserId);
+    }
     return { ok: false, error: se.message };
   }
 

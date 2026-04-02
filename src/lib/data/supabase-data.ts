@@ -1,5 +1,7 @@
+import { getOperationalFactoryId } from "@/lib/data/operational-context";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
   AssemblyGroup,
   Company,
@@ -27,6 +29,17 @@ import type {
 async function client() {
   if (!isSupabaseConfigured()) return null;
   return createSupabaseServerClient();
+}
+
+async function factoryScope(): Promise<{
+  c: SupabaseClient;
+  factoryId: string;
+} | null> {
+  const c = await client();
+  if (!c) return null;
+  const factoryId = await getOperationalFactoryId();
+  if (!factoryId) return null;
+  return { c, factoryId };
 }
 
 type Row = Record<string, unknown>;
@@ -278,73 +291,113 @@ export function mapOperationAssignment(r: Row): OperationAssignment {
 }
 
 export async function listCompanies(): Promise<Company[]> {
-  const c = await client();
-  if (!c) return [];
-  const { data, error } = await c.from("companies").select("*").order("name");
+  const s = await factoryScope();
+  if (!s) return [];
+  const { data, error } = await s.c
+    .from("companies")
+    .select("*")
+    .eq("factory_id", s.factoryId)
+    .order("name");
   if (error) throw new Error(error.message);
   return (data as Row[] | null)?.map(mapCompany) ?? [];
 }
 
 export async function getCompany(id: string): Promise<Company | undefined> {
-  const c = await client();
-  if (!c) return undefined;
-  const { data, error } = await c.from("companies").select("*").eq("id", id).maybeSingle();
+  const s = await factoryScope();
+  if (!s) return undefined;
+  const { data, error } = await s.c
+    .from("companies")
+    .select("*")
+    .eq("id", id)
+    .eq("factory_id", s.factoryId)
+    .maybeSingle();
   if (error) throw new Error(error.message);
   return data ? mapCompany(data as Row) : undefined;
 }
 
 export async function listUsers(): Promise<User[]> {
-  const c = await client();
-  if (!c) return [];
-  const { data, error } = await c.from("users").select("*").order("full_name");
+  const s = await factoryScope();
+  if (!s) return [];
+  const { data, error } = await s.c
+    .from("users")
+    .select("*")
+    .eq("factory_id", s.factoryId)
+    .order("full_name");
   if (error) throw new Error(error.message);
   return (data as Row[] | null)?.map(mapUser) ?? [];
 }
 
 export async function getUser(id: string): Promise<User | undefined> {
-  const c = await client();
-  if (!c) return undefined;
-  const { data, error } = await c.from("users").select("*").eq("id", id).maybeSingle();
+  const s = await factoryScope();
+  if (!s) return undefined;
+  const { data, error } = await s.c
+    .from("users")
+    .select("*")
+    .eq("id", id)
+    .eq("factory_id", s.factoryId)
+    .maybeSingle();
   if (error) throw new Error(error.message);
   return data ? mapUser(data as Row) : undefined;
 }
 
 export async function listDepartments(): Promise<Department[]> {
-  const c = await client();
-  if (!c) return [];
-  const { data, error } = await c.from("departments").select("*").order("name");
+  const s = await factoryScope();
+  if (!s) return [];
+  const { data, error } = await s.c
+    .from("departments")
+    .select("*")
+    .eq("factory_id", s.factoryId)
+    .order("name");
   if (error) throw new Error(error.message);
   return (data as Row[] | null)?.map(mapDepartment) ?? [];
 }
 
 export async function getDepartment(id: string): Promise<Department | undefined> {
-  const c = await client();
-  if (!c) return undefined;
-  const { data, error } = await c.from("departments").select("*").eq("id", id).maybeSingle();
+  const s = await factoryScope();
+  if (!s) return undefined;
+  const { data, error } = await s.c
+    .from("departments")
+    .select("*")
+    .eq("id", id)
+    .eq("factory_id", s.factoryId)
+    .maybeSingle();
   if (error) throw new Error(error.message);
   return data ? mapDepartment(data as Row) : undefined;
 }
 
 export async function listLocations(): Promise<Location[]> {
-  const c = await client();
-  if (!c) return [];
-  const { data, error } = await c.from("locations").select("*").order("code");
+  const s = await factoryScope();
+  if (!s) return [];
+  const { data, error } = await s.c
+    .from("locations")
+    .select("*")
+    .eq("factory_id", s.factoryId)
+    .order("code");
   if (error) throw new Error(error.message);
   return (data as Row[] | null)?.map(mapLocation) ?? [];
 }
 
 export async function getLocation(id: string): Promise<Location | undefined> {
-  const c = await client();
-  if (!c) return undefined;
-  const { data, error } = await c.from("locations").select("*").eq("id", id).maybeSingle();
+  const s = await factoryScope();
+  if (!s) return undefined;
+  const { data, error } = await s.c
+    .from("locations")
+    .select("*")
+    .eq("id", id)
+    .eq("factory_id", s.factoryId)
+    .maybeSingle();
   if (error) throw new Error(error.message);
   return data ? mapLocation(data as Row) : undefined;
 }
 
 export async function listMaterialCategories(): Promise<MaterialCategory[]> {
-  const c = await client();
-  if (!c) return [];
-  const { data, error } = await c.from("material_categories").select("*").order("code");
+  const s = await factoryScope();
+  if (!s) return [];
+  const { data, error } = await s.c
+    .from("material_categories")
+    .select("*")
+    .eq("factory_id", s.factoryId)
+    .order("code");
   if (error) throw new Error(error.message);
   return (data as Row[] | null)?.map(mapMaterialCategory) ?? [];
 }
@@ -352,45 +405,64 @@ export async function listMaterialCategories(): Promise<MaterialCategory[]> {
 export async function getMaterialCategory(
   id: string,
 ): Promise<MaterialCategory | undefined> {
-  const c = await client();
-  if (!c) return undefined;
-  const { data, error } = await c
+  const s = await factoryScope();
+  if (!s) return undefined;
+  const { data, error } = await s.c
     .from("material_categories")
     .select("*")
     .eq("id", id)
+    .eq("factory_id", s.factoryId)
     .maybeSingle();
   if (error) throw new Error(error.message);
   return data ? mapMaterialCategory(data as Row) : undefined;
 }
 
 export async function listSuppliers(): Promise<Supplier[]> {
-  const c = await client();
-  if (!c) return [];
-  const { data, error } = await c.from("suppliers").select("*").order("name");
+  const s = await factoryScope();
+  if (!s) return [];
+  const { data, error } = await s.c
+    .from("suppliers")
+    .select("*")
+    .eq("factory_id", s.factoryId)
+    .order("name");
   if (error) throw new Error(error.message);
   return (data as Row[] | null)?.map(mapSupplier) ?? [];
 }
 
 export async function getSupplier(id: string): Promise<Supplier | undefined> {
-  const c = await client();
-  if (!c) return undefined;
-  const { data, error } = await c.from("suppliers").select("*").eq("id", id).maybeSingle();
+  const s = await factoryScope();
+  if (!s) return undefined;
+  const { data, error } = await s.c
+    .from("suppliers")
+    .select("*")
+    .eq("id", id)
+    .eq("factory_id", s.factoryId)
+    .maybeSingle();
   if (error) throw new Error(error.message);
   return data ? mapSupplier(data as Row) : undefined;
 }
 
 export async function listMaterials(): Promise<Material[]> {
-  const c = await client();
-  if (!c) return [];
-  const { data, error } = await c.from("materials").select("*").order("code");
+  const s = await factoryScope();
+  if (!s) return [];
+  const { data, error } = await s.c
+    .from("materials")
+    .select("*")
+    .eq("factory_id", s.factoryId)
+    .order("code");
   if (error) throw new Error(error.message);
   return (data as Row[] | null)?.map(mapMaterial) ?? [];
 }
 
 export async function getMaterial(id: string): Promise<Material | undefined> {
-  const c = await client();
-  if (!c) return undefined;
-  const { data, error } = await c.from("materials").select("*").eq("id", id).maybeSingle();
+  const s = await factoryScope();
+  if (!s) return undefined;
+  const { data, error } = await s.c
+    .from("materials")
+    .select("*")
+    .eq("id", id)
+    .eq("factory_id", s.factoryId)
+    .maybeSingle();
   if (error) throw new Error(error.message);
   return data ? mapMaterial(data as Row) : undefined;
 }
@@ -398,11 +470,12 @@ export async function getMaterial(id: string): Promise<Material | undefined> {
 export async function listMaterialsByType(
   type: "ham_madde" | "sarf_malzeme",
 ): Promise<Material[]> {
-  const c = await client();
-  if (!c) return [];
-  const { data, error } = await c
+  const s = await factoryScope();
+  if (!s) return [];
+  const { data, error } = await s.c
     .from("materials")
     .select("*")
+    .eq("factory_id", s.factoryId)
     .eq("type", type)
     .order("code");
   if (error) throw new Error(error.message);
@@ -412,9 +485,9 @@ export async function listMaterialsByType(
 export async function listMaterialSupplierRelations(): Promise<
   MaterialSupplierRelation[]
 > {
-  const c = await client();
-  if (!c) return [];
-  const { data, error } = await c.from("material_supplier_relations").select("*");
+  const s = await factoryScope();
+  if (!s) return [];
+  const { data, error } = await s.c.from("material_supplier_relations").select("*");
   if (error) throw new Error(error.message);
   return (data as Row[] | null)?.map(mapMaterialSupplierRelation) ?? [];
 }
@@ -434,11 +507,12 @@ export async function relationsBySupplierId(
 }
 
 export async function listStockMovements(): Promise<StockMovement[]> {
-  const c = await client();
-  if (!c) return [];
-  const { data, error } = await c
+  const s = await factoryScope();
+  if (!s) return [];
+  const { data, error } = await s.c
     .from("stock_movements")
     .select("*")
+    .eq("factory_id", s.factoryId)
     .order("occurred_at", { ascending: false });
   if (error) throw new Error(error.message);
   return (data as Row[] | null)?.map(mapStockMovement) ?? [];
@@ -447,12 +521,13 @@ export async function listStockMovements(): Promise<StockMovement[]> {
 export async function getStockMovement(
   id: string,
 ): Promise<StockMovement | undefined> {
-  const c = await client();
-  if (!c) return undefined;
-  const { data, error } = await c
+  const s = await factoryScope();
+  if (!s) return undefined;
+  const { data, error } = await s.c
     .from("stock_movements")
     .select("*")
     .eq("id", id)
+    .eq("factory_id", s.factoryId)
     .maybeSingle();
   if (error) throw new Error(error.message);
   return data ? mapStockMovement(data as Row) : undefined;
@@ -474,25 +549,34 @@ export async function filterStockMovements(
 }
 
 export async function listProducts(): Promise<Product[]> {
-  const c = await client();
-  if (!c) return [];
-  const { data, error } = await c.from("products").select("*").order("code");
+  const s = await factoryScope();
+  if (!s) return [];
+  const { data, error } = await s.c
+    .from("products")
+    .select("*")
+    .eq("factory_id", s.factoryId)
+    .order("code");
   if (error) throw new Error(error.message);
   return (data as Row[] | null)?.map(mapProduct) ?? [];
 }
 
 export async function getProduct(id: string): Promise<Product | undefined> {
-  const c = await client();
-  if (!c) return undefined;
-  const { data, error } = await c.from("products").select("*").eq("id", id).maybeSingle();
+  const s = await factoryScope();
+  if (!s) return undefined;
+  const { data, error } = await s.c
+    .from("products")
+    .select("*")
+    .eq("id", id)
+    .eq("factory_id", s.factoryId)
+    .maybeSingle();
   if (error) throw new Error(error.message);
   return data ? mapProduct(data as Row) : undefined;
 }
 
 export async function listProductStockItems(): Promise<ProductStockItem[]> {
-  const c = await client();
-  if (!c) return [];
-  const { data, error } = await c.from("product_stock_items").select("*");
+  const s = await factoryScope();
+  if (!s) return [];
+  const { data, error } = await s.c.from("product_stock_items").select("*");
   if (error) throw new Error(error.message);
   return (data as Row[] | null)?.map(mapProductStockItem) ?? [];
 }
@@ -505,27 +589,36 @@ export async function getProductStockByProductId(
 }
 
 export async function listShipments(): Promise<Shipment[]> {
-  const c = await client();
-  if (!c) return [];
-  const { data, error } = await c.from("shipments").select("*").order("shipped_at", {
-    ascending: false,
-  });
+  const s = await factoryScope();
+  if (!s) return [];
+  const { data, error } = await s.c
+    .from("shipments")
+    .select("*")
+    .eq("factory_id", s.factoryId)
+    .order("shipped_at", {
+      ascending: false,
+    });
   if (error) throw new Error(error.message);
   return (data as Row[] | null)?.map(mapShipment) ?? [];
 }
 
 export async function getShipment(id: string): Promise<Shipment | undefined> {
-  const c = await client();
-  if (!c) return undefined;
-  const { data, error } = await c.from("shipments").select("*").eq("id", id).maybeSingle();
+  const s = await factoryScope();
+  if (!s) return undefined;
+  const { data, error } = await s.c
+    .from("shipments")
+    .select("*")
+    .eq("id", id)
+    .eq("factory_id", s.factoryId)
+    .maybeSingle();
   if (error) throw new Error(error.message);
   return data ? mapShipment(data as Row) : undefined;
 }
 
 export async function getShipmentItems(shipmentId: string): Promise<ShipmentItem[]> {
-  const c = await client();
-  if (!c) return [];
-  const { data, error } = await c
+  const s = await factoryScope();
+  if (!s) return [];
+  const { data, error } = await s.c
     .from("shipment_items")
     .select("*")
     .eq("shipment_id", shipmentId);
@@ -542,11 +635,15 @@ export async function filterShipments(f: ReportFilter): Promise<Shipment[]> {
 }
 
 export async function listProductionOrders(): Promise<ProductionOrder[]> {
-  const c = await client();
-  if (!c) return [];
-  const { data, error } = await c.from("production_orders").select("*").order("scheduled_date", {
-    ascending: false,
-  });
+  const s = await factoryScope();
+  if (!s) return [];
+  const { data, error } = await s.c
+    .from("production_orders")
+    .select("*")
+    .eq("factory_id", s.factoryId)
+    .order("scheduled_date", {
+      ascending: false,
+    });
   if (error) throw new Error(error.message);
   return (data as Row[] | null)?.map(mapProductionOrder) ?? [];
 }
@@ -554,12 +651,13 @@ export async function listProductionOrders(): Promise<ProductionOrder[]> {
 export async function getProductionOrder(
   id: string,
 ): Promise<ProductionOrder | undefined> {
-  const c = await client();
-  if (!c) return undefined;
-  const { data, error } = await c
+  const s = await factoryScope();
+  if (!s) return undefined;
+  const { data, error } = await s.c
     .from("production_orders")
     .select("*")
     .eq("id", id)
+    .eq("factory_id", s.factoryId)
     .maybeSingle();
   if (error) throw new Error(error.message);
   return data ? mapProductionOrder(data as Row) : undefined;
@@ -568,9 +666,9 @@ export async function getProductionOrder(
 export async function getProductionOrderLines(
   orderId: string,
 ): Promise<ProductionOrderLine[]> {
-  const c = await client();
-  if (!c) return [];
-  const { data, error } = await c
+  const s = await factoryScope();
+  if (!s) return [];
+  const { data, error } = await s.c
     .from("production_order_lines")
     .select("*")
     .eq("production_order_id", orderId);
@@ -592,9 +690,9 @@ export async function filterProductionOrders(
 }
 
 export async function listProductionOrderLines(): Promise<ProductionOrderLine[]> {
-  const c = await client();
-  if (!c) return [];
-  const { data, error } = await c.from("production_order_lines").select("*");
+  const s = await factoryScope();
+  if (!s) return [];
+  const { data, error } = await s.c.from("production_order_lines").select("*");
   if (error) throw new Error(error.message);
   return (data as Row[] | null)?.map(mapProductionOrderLine) ?? [];
 }
@@ -613,9 +711,13 @@ export async function filterProductionOrderLines(
 }
 
 export async function listParts(): Promise<Part[]> {
-  const c = await client();
-  if (!c) return [];
-  const { data, error } = await c.from("parts").select("*").order("part_code");
+  const s = await factoryScope();
+  if (!s) return [];
+  const { data, error } = await s.c
+    .from("parts")
+    .select("*")
+    .eq("factory_id", s.factoryId)
+    .order("part_code");
   if (error) throw new Error(error.message);
   return (data as Row[] | null)?.map(mapPart) ?? [];
 }
@@ -634,20 +736,26 @@ export async function sumPartQuantitiesByMaterialId(): Promise<Map<string, numbe
 }
 
 export async function getPart(id: string): Promise<Part | undefined> {
-  const c = await client();
-  if (!c) return undefined;
-  const { data, error } = await c.from("parts").select("*").eq("id", id).maybeSingle();
+  const s = await factoryScope();
+  if (!s) return undefined;
+  const { data, error } = await s.c
+    .from("parts")
+    .select("*")
+    .eq("id", id)
+    .eq("factory_id", s.factoryId)
+    .maybeSingle();
   if (error) throw new Error(error.message);
   return data ? mapPart(data as Row) : undefined;
 }
 
 export async function listPartsByBatchId(batchId: string): Promise<Part[]> {
-  const c = await client();
-  if (!c) return [];
-  const { data, error } = await c
+  const s = await factoryScope();
+  if (!s) return [];
+  const { data, error } = await s.c
     .from("parts")
     .select("*")
-    .eq("import_batch_id", batchId);
+    .eq("import_batch_id", batchId)
+    .eq("factory_id", s.factoryId);
   if (error) throw new Error(error.message);
   return (data as Row[] | null)?.map(mapPart) ?? [];
 }
@@ -655,12 +763,13 @@ export async function listPartsByBatchId(batchId: string): Promise<Part[]> {
 export async function listPartsByAssemblyGroupId(
   assemblyGroupId: string,
 ): Promise<Part[]> {
-  const c = await client();
-  if (!c) return [];
-  const { data, error } = await c
+  const s = await factoryScope();
+  if (!s) return [];
+  const { data, error } = await s.c
     .from("parts")
     .select("*")
-    .eq("assembly_group_id", assemblyGroupId);
+    .eq("assembly_group_id", assemblyGroupId)
+    .eq("factory_id", s.factoryId);
   if (error) throw new Error(error.message);
   return (data as Row[] | null)?.map(mapPart) ?? [];
 }
@@ -668,9 +777,9 @@ export async function listPartsByAssemblyGroupId(
 export async function listPartRouteStepsForPartIds(
   partIds: string[],
 ): Promise<PartRouteStep[]> {
-  const c = await client();
-  if (!c || partIds.length === 0) return [];
-  const { data, error } = await c
+  const s = await factoryScope();
+  if (!s || partIds.length === 0) return [];
+  const { data, error } = await s.c
     .from("part_route_steps")
     .select("*")
     .in("part_id", partIds)
@@ -681,9 +790,13 @@ export async function listPartRouteStepsForPartIds(
 }
 
 export async function listAssemblyGroups(): Promise<AssemblyGroup[]> {
-  const c = await client();
-  if (!c) return [];
-  const { data, error } = await c.from("assembly_groups").select("*").order("code");
+  const s = await factoryScope();
+  if (!s) return [];
+  const { data, error } = await s.c
+    .from("assembly_groups")
+    .select("*")
+    .eq("factory_id", s.factoryId)
+    .order("code");
   if (error) throw new Error(error.message);
   return (data as Row[] | null)?.map(mapAssemblyGroup) ?? [];
 }
@@ -691,12 +804,13 @@ export async function listAssemblyGroups(): Promise<AssemblyGroup[]> {
 export async function getAssemblyGroup(
   id: string,
 ): Promise<AssemblyGroup | undefined> {
-  const c = await client();
-  if (!c) return undefined;
-  const { data, error } = await c
+  const s = await factoryScope();
+  if (!s) return undefined;
+  const { data, error } = await s.c
     .from("assembly_groups")
     .select("*")
     .eq("id", id)
+    .eq("factory_id", s.factoryId)
     .maybeSingle();
   if (error) throw new Error(error.message);
   return data ? mapAssemblyGroup(data as Row) : undefined;
@@ -705,20 +819,21 @@ export async function getAssemblyGroup(
 export async function listAssemblyGroupsByBatchId(
   batchId: string,
 ): Promise<AssemblyGroup[]> {
-  const c = await client();
-  if (!c) return [];
-  const { data, error } = await c
+  const s = await factoryScope();
+  if (!s) return [];
+  const { data, error } = await s.c
     .from("assembly_groups")
     .select("*")
-    .eq("import_batch_id", batchId);
+    .eq("import_batch_id", batchId)
+    .eq("factory_id", s.factoryId);
   if (error) throw new Error(error.message);
   return (data as Row[] | null)?.map(mapAssemblyGroup) ?? [];
 }
 
 export async function listOperationAssignments(): Promise<OperationAssignment[]> {
-  const c = await client();
-  if (!c) return [];
-  const { data, error } = await c.from("operation_assignments").select("*");
+  const s = await factoryScope();
+  if (!s) return [];
+  const { data, error } = await s.c.from("operation_assignments").select("*");
   if (error) throw new Error(error.message);
   return (data as Row[] | null)?.map(mapOperationAssignment) ?? [];
 }
@@ -731,9 +846,9 @@ export async function listOperationAssignmentsByPartId(
 }
 
 export async function listShipmentItems(): Promise<ShipmentItem[]> {
-  const c = await client();
-  if (!c) return [];
-  const { data, error } = await c.from("shipment_items").select("*");
+  const s = await factoryScope();
+  if (!s) return [];
+  const { data, error } = await s.c.from("shipment_items").select("*");
   if (error) throw new Error(error.message);
   return (data as Row[] | null)?.map(mapShipmentItem) ?? [];
 }

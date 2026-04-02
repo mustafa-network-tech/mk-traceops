@@ -174,6 +174,7 @@ async function ensureMaterialSupplierLink(
   materialId: string,
   firma: string,
   batchId: string,
+  factoryId: string,
 ): Promise<void> {
   if (!firma.trim()) return;
 
@@ -181,6 +182,7 @@ async function ensureMaterialSupplierLink(
   const { data: supHit } = await supabase
     .from("suppliers")
     .select("id")
+    .eq("factory_id", factoryId)
     .ilike("name", firma)
     .limit(1)
     .maybeSingle();
@@ -193,6 +195,7 @@ async function ensureMaterialSupplierLink(
       .insert({
         name: firma,
         notes: `Excel aktarımı (${batchId})`,
+        factory_id: factoryId,
       })
       .select("id")
       .single();
@@ -236,10 +239,25 @@ export async function syncPartsFromImportBatch(
   supabase: SupabaseClient,
   batchId: string,
 ): Promise<void> {
+  const { data: batchMeta, error: batchMetaErr } = await supabase
+    .from("import_batches")
+    .select("factory_id")
+    .eq("id", batchId)
+    .single();
+
+  if (batchMetaErr || !batchMeta?.factory_id) {
+    throw new Error(
+      batchMetaErr?.message ??
+        "Aktarım kaydında factory_id yok; migration veya kayıt oluşturma akışını kontrol edin.",
+    );
+  }
+  const factoryId = batchMeta.factory_id as string;
+
   const { data: cat, error: catErr } = await supabase
     .from("material_categories")
     .select("id")
     .eq("code", "GEN")
+    .eq("factory_id", factoryId)
     .maybeSingle();
 
   if (catErr) throw new Error(catErr.message);
@@ -247,7 +265,7 @@ export async function syncPartsFromImportBatch(
   if (!categoryId) {
     const { data: ins, error: insErr } = await supabase
       .from("material_categories")
-      .insert({ name: "Genel", code: "GEN" })
+      .insert({ name: "Genel", code: "GEN", factory_id: factoryId })
       .select("id")
       .single();
     if (insErr) throw new Error(insErr.message);
@@ -313,6 +331,7 @@ export async function syncPartsFromImportBatch(
         .from("materials")
         .select("id")
         .eq("code", code)
+        .eq("factory_id", factoryId)
         .maybeSingle();
 
       if (byCode?.id) {
@@ -337,6 +356,7 @@ export async function syncPartsFromImportBatch(
         const { data: byName } = await supabase
           .from("materials")
           .select("id")
+          .eq("factory_id", factoryId)
           .ilike("name", hmAd)
           .limit(1)
           .maybeSingle();
@@ -372,6 +392,7 @@ export async function syncPartsFromImportBatch(
               current_stock: safeCur,
               active: true,
               category_id: categoryId,
+              factory_id: factoryId,
               note: `Excel ham madde sayfası (${batchId})`,
             })
             .select("id")
@@ -396,6 +417,7 @@ export async function syncPartsFromImportBatch(
           materialId,
           firmaHm,
           batchId,
+          factoryId,
         );
       }
 
@@ -421,6 +443,7 @@ export async function syncPartsFromImportBatch(
         .select("id")
         .eq("import_batch_id", batchId)
         .eq("code", montaj)
+        .eq("factory_id", factoryId)
         .maybeSingle();
 
       if (existingAg?.id) {
@@ -432,6 +455,7 @@ export async function syncPartsFromImportBatch(
             code: montaj,
             name: montaj,
             import_batch_id: batchId,
+            factory_id: factoryId,
           })
           .select("id")
           .single();
@@ -466,6 +490,7 @@ export async function syncPartsFromImportBatch(
       const { data: matHit } = await supabase
         .from("materials")
         .select("id")
+        .eq("factory_id", factoryId)
         .ilike("name", malzemeAd)
         .limit(1)
         .maybeSingle();
@@ -485,6 +510,7 @@ export async function syncPartsFromImportBatch(
             current_stock: initialStock,
             active: true,
             category_id: categoryId,
+            factory_id: factoryId,
             note: `LİSTE Excel (${batchId})`,
             source_import_batch_id: batchId,
           })
@@ -500,6 +526,7 @@ export async function syncPartsFromImportBatch(
       const { data: co } = await supabase
         .from("companies")
         .select("id")
+        .eq("factory_id", factoryId)
         .ilike("name", firma)
         .limit(1)
         .maybeSingle();
@@ -522,6 +549,7 @@ export async function syncPartsFromImportBatch(
         assigned_company_id: assignedCompanyId,
         assembly_group_id: assemblyGroupId,
         type: "ana_parça",
+        factory_id: factoryId,
       })
       .select("id")
       .single();
@@ -540,7 +568,13 @@ export async function syncPartsFromImportBatch(
     const partId = partIns.id as string;
 
     if (materialId && firma) {
-      await ensureMaterialSupplierLink(supabase, materialId, firma, batchId);
+      await ensureMaterialSupplierLink(
+        supabase,
+        materialId,
+        firma,
+        batchId,
+        factoryId,
+      );
     }
 
     if (materialId) {

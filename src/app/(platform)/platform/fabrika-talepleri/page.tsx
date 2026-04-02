@@ -66,11 +66,22 @@ export default async function FabrikaTalepleriPage() {
                     <p className="mt-1 text-slate-600">
                       Başvuran: {r.applicantName} · {r.applicantEmail}
                     </p>
+                    {r.applicantUserId ? (
+                      <p className="text-xs font-medium text-violet-700">
+                        Uygulama üzerinden kayıt (Auth bağlı)
+                      </p>
+                    ) : null}
                     <p className="text-xs text-slate-500">
                       {formatDateTime(r.createdAt)}
                     </p>
                   </div>
-                  <ApproveFactoryForm requestId={r.id} />
+                  <ApproveFactoryForm
+                    requestId={r.id}
+                    suggestedEmail={r.applicantEmail}
+                    suggestedFirstName={r.applicantFirstName ?? undefined}
+                    suggestedLastName={r.applicantLastName ?? undefined}
+                    lockApplicantEmail={Boolean(r.applicantUserId)}
+                  />
                 </div>
               ))}
             </div>
