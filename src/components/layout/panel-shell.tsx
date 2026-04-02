@@ -43,6 +43,13 @@ export function PanelShell({
             ) : null}
             <span className="text-slate-300">|</span>
             <Link
+              href="/tanitim"
+              className="text-xs text-slate-600 underline-offset-2 hover:underline"
+            >
+              Ana sayfa
+            </Link>
+            <span className="text-slate-300">|</span>
+            <Link
               href="/platform"
               className="text-xs text-violet-700 underline-offset-2 hover:underline"
             >

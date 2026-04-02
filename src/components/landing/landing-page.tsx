@@ -102,6 +102,15 @@ export function LandingPage() {
             <a href="#moduller" className="hover:text-slate-900">
               Modüller
             </a>
+            <a href="#baslangic" className="hover:text-slate-900">
+              Başlangıç
+            </a>
+            <Link
+              href="/mk-traceops-nedir"
+              className="hover:text-slate-900"
+            >
+              MK TraceOps nedir
+            </Link>
             <Link
               href="/giris"
               className={cn(

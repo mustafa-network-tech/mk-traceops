@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { SignOutForm } from "@/components/auth/sign-out-form";
 import { ActorSwitcher } from "@/components/rbac/actor-switcher";
 import type { ActorOption } from "@/lib/rbac/types";
@@ -27,6 +29,13 @@ export function PlatformShell({
             <span className="font-mono font-medium text-slate-800">{brand.name}</span>
             <span className="text-slate-300">|</span>
             <span className="text-violet-700 font-medium">Platform yönetimi</span>
+            <span className="text-slate-300">|</span>
+            <Link
+              href="/tanitim"
+              className="text-xs text-slate-600 underline-offset-2 hover:underline"
+            >
+              Ana sayfa
+            </Link>
             <span className="text-slate-300">|</span>
             <span className="text-xs text-slate-500">
               Fabrika paneli için üstteki oturumdan fabrika kullanıcısı seçin.

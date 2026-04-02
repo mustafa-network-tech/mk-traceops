@@ -17,5 +17,5 @@ export async function signOutAction(): Promise<void> {
   jar.delete(RBAC_PROFILE_COOKIE);
   jar.delete(RBAC_USER_COOKIE);
   revalidatePath("/", "layout");
-  redirect("/giris");
+  redirect("/");
 }

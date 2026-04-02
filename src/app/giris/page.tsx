@@ -60,8 +60,8 @@ export default async function GirisPage() {
           yapın. Mevcut fabrikada çalışıyorsanız fabrika yöneticinizden davet isteyin.
         </p>
         <p className="mt-4 text-center text-xs">
-          <Link href="/kokpit" className="text-slate-600 underline-offset-2 hover:underline">
-            Kokpite dön
+          <Link href="/" className="text-slate-600 underline-offset-2 hover:underline">
+            Ana sayfaya dön
           </Link>
         </p>
       </div>
