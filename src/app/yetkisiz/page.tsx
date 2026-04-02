@@ -14,6 +14,9 @@ export default function YetkisizPage() {
       </p>
       <div className="flex flex-wrap justify-center gap-2">
         <Button asChild>
+          <Link href="/giris">Giriş yap</Link>
+        </Button>
+        <Button variant="outline" asChild>
           <Link href="/kokpit">Kokpite dön</Link>
         </Button>
         <Button variant="outline" asChild>

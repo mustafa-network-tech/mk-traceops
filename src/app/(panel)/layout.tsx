@@ -8,6 +8,7 @@ import {
 import { loadActorSwitcherOptions } from "@/lib/rbac/actor-options";
 import { allowedPanelHrefs } from "@/lib/rbac/navigation-filter";
 import { getRbacSession } from "@/lib/rbac/session-server";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export default async function PanelLayout({
   children,
@@ -16,6 +17,13 @@ export default async function PanelLayout({
 }) {
   const ctx = await getRbacSession();
   if (!ctx?.user) {
+    const supabase = await createSupabaseServerClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      redirect("/giris");
+    }
     redirect("/yetkisiz");
   }
   if (isPlatformAdmin(ctx.user)) {

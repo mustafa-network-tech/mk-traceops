@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { SignOutForm } from "@/components/auth/sign-out-form";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { ActorSwitcher } from "@/components/rbac/actor-switcher";
 import type { ActorOption } from "@/lib/rbac/types";
@@ -44,9 +45,12 @@ export function PanelShell({
               Platform yönetimi
             </Link>
           </div>
-          {actors.length > 0 ? (
-            <ActorSwitcher currentUserId={currentUserId} actors={actors} />
-          ) : null}
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            {actors.length > 0 ? (
+              <ActorSwitcher currentUserId={currentUserId} actors={actors} />
+            ) : null}
+            <SignOutForm />
+          </div>
         </header>
         <PanelRouteGuard allowedHrefs={allowedHrefs}>
           <main className="flex-1 p-4 sm:p-6">{children}</main>

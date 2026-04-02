@@ -1,3 +1,4 @@
+import { SignOutForm } from "@/components/auth/sign-out-form";
 import { ActorSwitcher } from "@/components/rbac/actor-switcher";
 import type { ActorOption } from "@/lib/rbac/types";
 import { brand } from "@/lib/constants/brand";
@@ -27,9 +28,12 @@ export function PlatformShell({
               Fabrika paneli için üstteki oturumdan fabrika kullanıcısı seçin.
             </span>
           </div>
-          {actors.length > 0 ? (
-            <ActorSwitcher currentUserId={currentUserId} actors={actors} />
-          ) : null}
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            {actors.length > 0 ? (
+              <ActorSwitcher currentUserId={currentUserId} actors={actors} />
+            ) : null}
+            <SignOutForm />
+          </div>
         </header>
         <main className="flex-1 p-4 sm:p-6">{children}</main>
       </div>
