@@ -94,18 +94,29 @@ export async function loadPermissionSetForDbRole(
 ): Promise<Set<string>> {
   const c = await db();
   if (!c) return new Set();
-  const { data, error } = await c
+  // İç içe select("permissions(...)") bazı PostgREST sürümlerinde hata verir; iki sorgu güvenli.
+  const { data: links, error: linkErr } = await c
     .from("role_permissions")
-    .select("permissions(module, action)")
+    .select("permission_id")
     .eq("role", dbRole);
-  if (error) throw new Error(error.message);
+  if (linkErr) throw new Error(linkErr.message);
+  const ids = [
+    ...new Set(
+      (links ?? [])
+        .map((row) => row.permission_id as string)
+        .filter(Boolean),
+    ),
+  ];
+  if (ids.length === 0) return new Set();
+  const { data: perms, error: permErr } = await c
+    .from("permissions")
+    .select("module, action")
+    .in("id", ids);
+  if (permErr) throw new Error(permErr.message);
   const set = new Set<string>();
-  for (const row of data ?? []) {
-    const raw = row.permissions as unknown;
-    const p = Array.isArray(raw)
-      ? (raw[0] as { module: string; action: string } | undefined)
-      : (raw as { module: string; action: string } | null);
-    if (p?.module && p?.action) set.add(`${p.module}.${p.action}`);
+  for (const row of perms ?? []) {
+    const p = row as { module: string; action: string };
+    if (p.module && p.action) set.add(`${p.module}.${p.action}`);
   }
   return set;
 }

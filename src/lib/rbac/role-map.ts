@@ -20,7 +20,8 @@ const KEY_TO_DB: Record<RoleKey, string> = {
 };
 
 export function dbRoleToRoleKey(db: string): RoleKey {
-  const k = DB_TO_KEY[db];
+  const key = String(db).trim().toLowerCase();
+  const k = DB_TO_KEY[key];
   if (!k) throw new Error(`Bilinmeyen rol: ${db}`);
   return k;
 }
