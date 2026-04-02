@@ -169,8 +169,29 @@ export async function registerFactoryApplicantAction(input: {
     };
   }
 
+  // Supabase projede "Confirm email" açık olsa bile: service role ile e-postayı onayla
+  // ve oturum yoksa aynı istekte şifreyle giriş yap (başvuru sayfasına yönlendirme çalışsın).
+  let sessionEstablished = Boolean(signData.session);
+  if (isSupabaseAdminConfigured()) {
+    try {
+      const adm = createSupabaseAdminClient();
+      const { error: confirmErr } = await adm.auth.admin.updateUserById(userId, {
+        email_confirm: true,
+      });
+      if (!confirmErr && !sessionEstablished) {
+        const { data: signInData, error: signInErr } =
+          await supabase.auth.signInWithPassword({ email, password });
+        if (!signInErr && signInData.session) {
+          sessionEstablished = true;
+        }
+      }
+    } catch {
+      /* Service role veya oturum hatası: Supabase “confirm email” ayarına göre eski akış */
+    }
+  }
+
   return {
     ok: true,
-    needsEmailConfirm: !signData.session,
+    needsEmailConfirm: !sessionEstablished,
   };
 }

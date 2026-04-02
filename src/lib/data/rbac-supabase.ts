@@ -330,6 +330,15 @@ export async function approveFactoryRequest(params: {
           "Onay formundaki e-posta, başvurudaki e-posta ile birebir aynı olmalı.",
       };
     }
+    const { error: confirmErr } = await adm.auth.admin.updateUserById(applicantUserId, {
+      email_confirm: true,
+    });
+    if (confirmErr) {
+      return {
+        ok: false,
+        error: `Başvuranın e-postası onaylanamadı (giriş engellenebilir): ${confirmErr.message}`,
+      };
+    }
     newUserId = applicantUserId;
     removeAuthUserOnFailure = false;
   } else {
