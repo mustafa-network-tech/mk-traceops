@@ -10,6 +10,8 @@ import type {
   MaterialSupplierRelation,
   OperationAssignment,
   Part,
+  PartMaterialRequirement,
+  PartRouteStep,
   Product,
   ProductStockItem,
   ProductionOrder,
@@ -107,6 +109,28 @@ export function mapMaterial(r: Row): Material {
     active: Boolean(r.active),
     categoryId: r.category_id as string,
     note: (r.note as string) ?? undefined,
+    sourceImportBatchId: (r.source_import_batch_id as string) ?? undefined,
+  };
+}
+
+export function mapPartMaterialRequirement(r: Row): PartMaterialRequirement {
+  return {
+    id: r.id as string,
+    partId: r.part_id as string,
+    materialId: r.material_id as string,
+    quantityPerUnit: numOrZero(r.quantity_per_unit),
+    unit: (r.unit as string) ?? "adet",
+    note: (r.note as string) ?? undefined,
+  };
+}
+
+export function mapPartRouteStep(r: Row): PartRouteStep {
+  return {
+    id: r.id as string,
+    partId: r.part_id as string,
+    stepNo: Number(r.step_no),
+    operationLabel: r.operation_label as string,
+    assignedCompanyId: (r.assigned_company_id as string) ?? undefined,
   };
 }
 
@@ -639,6 +663,21 @@ export async function listPartsByAssemblyGroupId(
     .eq("assembly_group_id", assemblyGroupId);
   if (error) throw new Error(error.message);
   return (data as Row[] | null)?.map(mapPart) ?? [];
+}
+
+export async function listPartRouteStepsForPartIds(
+  partIds: string[],
+): Promise<PartRouteStep[]> {
+  const c = await client();
+  if (!c || partIds.length === 0) return [];
+  const { data, error } = await c
+    .from("part_route_steps")
+    .select("*")
+    .in("part_id", partIds)
+    .order("part_id", { ascending: true })
+    .order("step_no", { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data as Row[] | null)?.map(mapPartRouteStep) ?? [];
 }
 
 export async function listAssemblyGroups(): Promise<AssemblyGroup[]> {

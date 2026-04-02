@@ -19,3 +19,12 @@ export function requireSupabaseEnv(): {
   }
   return { url, anonKey };
 }
+
+/**
+ * true ise `mk_rbac_profile_id` çerezi ile oturum seçilebilir (geliştirme / bootstrap).
+ * Canlıda kapalı tutun; yalnızca Supabase Auth oturumu kullanılmalıdır.
+ */
+export function isRbacProfileCookieAllowed(): boolean {
+  const v = process.env.RBAC_ALLOW_PROFILE_COOKIE?.trim().toLowerCase();
+  return v === "1" || v === "true" || v === "yes";
+}

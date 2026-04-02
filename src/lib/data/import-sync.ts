@@ -9,13 +9,35 @@ function cell(raw: Record<string, unknown>, key: string): string {
   return String(v).trim();
 }
 
+function normalizeExcelLabel(s: string): string {
+  return s.replace(/\u00a0/g, " ").replace(/\s+/g, " ").trim();
+}
+
+/**
+ * ROTA / İMALAT ŞEKLİ: > , → , | , ; ve satır sonu ile çoklu işlem.
+ * Tek parça metin tek adım olarak kalır.
+ */
+function splitRouteOperations(raw: string): string[] {
+  const t = normalizeExcelLabel(raw);
+  if (!t) return [];
+  return t
+    .split(/\s*(?:>|→|➜|->|\||;)\s*|\n+/)
+    .map((x) => normalizeExcelLabel(x))
+    .filter(Boolean);
+}
+
 /** MK3Ops LİSTE başlıkları birincil; eski «Parça Kodu» şablonu yedek. */
 function anaPartCode(rd: Record<string, unknown>): string {
   return cell(rd, "KODU") || cell(rd, "Parça Kodu");
 }
 
 function anaMontajGrubu(rd: Record<string, unknown>): string {
-  return cell(rd, "GRUP") || cell(rd, "Montaj Grubu");
+  const v =
+    cell(rd, "GRUP") ||
+    cell(rd, "Montaj Grubu") ||
+    cell(rd, "MONTAJ GRUBU") ||
+    cell(rd, "MG");
+  return v ? normalizeExcelLabel(v) : "";
 }
 
 function anaAciklama(rd: Record<string, unknown>): string {
@@ -428,7 +450,8 @@ export async function syncPartsFromImportBatch(
     }
 
     let materialId: string | null = null;
-    const malzemeAd = anaMalzeme(rd);
+    const malzemeAdRaw = anaMalzeme(rd);
+    const malzemeAd = malzemeAdRaw ? normalizeExcelLabel(malzemeAdRaw) : "";
     if (malzemeAd) {
       const unitNew = listeMaterialUnit(rd);
       const stockExplicit = cell(rd, "STOK MİKTARI").trim() !== "";
@@ -463,6 +486,7 @@ export async function syncPartsFromImportBatch(
             active: true,
             category_id: categoryId,
             note: `LİSTE Excel (${batchId})`,
+            source_import_batch_id: batchId,
           })
           .select("id")
           .single();
@@ -517,6 +541,27 @@ export async function syncPartsFromImportBatch(
 
     if (materialId && firma) {
       await ensureMaterialSupplierLink(supabase, materialId, firma, batchId);
+    }
+
+    if (materialId) {
+      const qtyPer = safeQty > 0 ? safeQty : 1;
+      await supabase.from("part_material_requirements").insert({
+        part_id: partId,
+        material_id: materialId,
+        quantity_per_unit: qtyPer,
+        unit: listeMaterialUnit(rd),
+      });
+    }
+
+    const routeLabels = splitRouteOperations(anaOperasyon(rd));
+    if (routeLabels.length > 0) {
+      const stepRows = routeLabels.map((label, i) => ({
+        part_id: partId,
+        step_no: i + 1,
+        operation_label: label.slice(0, 500),
+        assigned_company_id: assignedCompanyId,
+      }));
+      await supabase.from("part_route_steps").insert(stepRows);
     }
 
     await supabase

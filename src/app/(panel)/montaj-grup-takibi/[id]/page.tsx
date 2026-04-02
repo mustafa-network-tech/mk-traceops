@@ -17,6 +17,7 @@ import {
   getAssemblyGroup,
   listCompanies,
   listMaterials,
+  listPartRouteStepsForPartIds,
   listPartsByAssemblyGroupId,
   listProductionOrders,
 } from "@/lib/data/supabase-data";
@@ -34,6 +35,23 @@ export default async function MontajGrupDetayPage({ params }: Props) {
     listCompanies(),
     listProductionOrders(),
   ]);
+
+  const partIds = parts.map((p) => p.id);
+  let routeByPartId = new Map<string, string>();
+  try {
+    const steps = await listPartRouteStepsForPartIds(partIds);
+    const grouped = new Map<string, string[]>();
+    for (const s of steps) {
+      const arr = grouped.get(s.partId) ?? [];
+      arr.push(s.operationLabel);
+      grouped.set(s.partId, arr);
+    }
+    routeByPartId = new Map(
+      [...grouped.entries()].map(([pid, labels]) => [pid, labels.join(" → ")]),
+    );
+  } catch {
+    /* part_route_steps tablosu yoksa (migration öncesi) ham operasyon gösterilir */
+  }
 
   const matById = new Map(materials.map((m) => [m.id, m]));
   const compById = new Map(companies.map((c) => [c.id, c]));
@@ -103,7 +121,8 @@ export default async function MontajGrupDetayPage({ params }: Props) {
                 <TableHead>Kod</TableHead>
                 <TableHead>Açıklama</TableHead>
                 <TableHead>Malzeme</TableHead>
-                <TableHead>Operasyon</TableHead>
+                <TableHead>Rota</TableHead>
+                <TableHead>Operasyon (Excel)</TableHead>
                 <TableHead>Firma</TableHead>
                 <TableHead className="text-right">Adet</TableHead>
               </TableRow>
@@ -118,8 +137,24 @@ export default async function MontajGrupDetayPage({ params }: Props) {
                   <TableRow key={p.id}>
                     <TableCell className="font-mono text-xs">{p.partCode}</TableCell>
                     <TableCell>{p.description}</TableCell>
-                    <TableCell className="text-xs">{m?.code ?? "—"}</TableCell>
-                    <TableCell>{p.operation}</TableCell>
+                    <TableCell className="text-xs">
+                      {m ? (
+                        <span className="block max-w-[200px] leading-snug">
+                          <span className="font-medium text-slate-800">
+                            {m.name}
+                          </span>
+                          <span className="mt-0.5 block font-mono text-[10px] text-slate-500">
+                            {m.code}
+                          </span>
+                        </span>
+                      ) : (
+                        "—"
+                      )}
+                    </TableCell>
+                    <TableCell className="max-w-[220px] text-xs leading-snug">
+                      {routeByPartId.get(p.id) ?? "—"}
+                    </TableCell>
+                    <TableCell className="text-xs">{p.operation}</TableCell>
                     <TableCell className="text-sm">{c?.name ?? "—"}</TableCell>
                     <TableCell className="text-right">{p.quantity}</TableCell>
                   </TableRow>

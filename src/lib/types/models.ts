@@ -53,6 +53,27 @@ export interface Material {
   active: boolean;
   categoryId: string;
   note?: string;
+  /** Yalnızca ilgili Excel aktarımında oluşturulduysa batch kimliği. */
+  sourceImportBatchId?: string;
+}
+
+/** Parça başına bağlı malzeme ihtiyacı (BOM satırı). */
+export interface PartMaterialRequirement {
+  id: string;
+  partId: string;
+  materialId: string;
+  quantityPerUnit: number;
+  unit: string;
+  note?: string;
+}
+
+/** Excel rota metninden türetilen işlem adımı. */
+export interface PartRouteStep {
+  id: string;
+  partId: string;
+  stepNo: number;
+  operationLabel: string;
+  assignedCompanyId?: string;
 }
 
 export interface Supplier {

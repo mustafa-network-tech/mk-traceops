@@ -145,7 +145,12 @@ export function PartListWithFilters({ rows }: { rows: Row[] }) {
                 <TableCell className="text-sm">
                   {material ? (
                     <div className="flex flex-col gap-1">
-                      <span className="font-mono text-xs">{material.code}</span>
+                      <span className="text-sm font-medium leading-tight">
+                        {material.name}
+                      </span>
+                      <span className="font-mono text-xs text-slate-600">
+                        {material.code}
+                      </span>
                       <MaterialTypeBadge type={material.type} />
                     </div>
                   ) : (

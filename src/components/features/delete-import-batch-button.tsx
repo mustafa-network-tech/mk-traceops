@@ -27,8 +27,8 @@ export function DeleteImportBatchButton({
 
   function onClick() {
     const msg = fileLabel
-      ? `"${fileLabel}" aktarımını ve bu aktarımdan oluşan parçalar ile montaj gruplarını silmek istiyor musunuz?`
-      : "Bu aktarımı ve ilişkili parçalar ile montaj gruplarını silmek istiyor musunuz?";
+      ? `"${fileLabel}" aktarımını, bu aktarımdan oluşan parçaları, montaj gruplarını ve yalnızca bu aktarımda oluşturulmuş (başka kayıtta kullanılmayan) malzemeleri silmek istiyor musunuz?`
+      : "Bu aktarımı, ilişkili parçaları, montaj gruplarını ve yalnızca bu aktarımda oluşturulmuş (paylaşılmayan) malzemeleri silmek istiyor musunuz?";
     if (!globalThis.confirm(msg)) return;
 
     startTransition(async () => {
