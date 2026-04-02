@@ -158,29 +158,38 @@ begin
 
   alter table public.material_categories drop constraint if exists material_categories_code_key;
   alter table public.material_categories
+    drop constraint if exists material_categories_factory_code_key;
+  alter table public.material_categories
     add constraint material_categories_factory_code_key unique (factory_id, code);
 
   alter table public.materials drop constraint if exists materials_code_key;
+  alter table public.materials drop constraint if exists materials_factory_code_key;
   alter table public.materials
     add constraint materials_factory_code_key unique (factory_id, code);
 
   alter table public.locations drop constraint if exists locations_code_key;
+  alter table public.locations drop constraint if exists locations_factory_code_key;
   alter table public.locations
     add constraint locations_factory_code_key unique (factory_id, code);
 
   alter table public.departments drop constraint if exists departments_code_key;
+  alter table public.departments drop constraint if exists departments_factory_code_key;
   alter table public.departments
     add constraint departments_factory_code_key unique (factory_id, code);
 
   alter table public.products drop constraint if exists products_code_key;
+  alter table public.products drop constraint if exists products_factory_code_key;
   alter table public.products
     add constraint products_factory_code_key unique (factory_id, code);
 
   alter table public.production_orders drop constraint if exists production_orders_order_no_key;
   alter table public.production_orders
+    drop constraint if exists production_orders_factory_order_no_key;
+  alter table public.production_orders
     add constraint production_orders_factory_order_no_key unique (factory_id, order_no);
 
   alter table public.shipments drop constraint if exists shipments_shipment_number_key;
+  alter table public.shipments drop constraint if exists shipments_factory_shipment_number_key;
   alter table public.shipments
     add constraint shipments_factory_shipment_number_key unique (factory_id, shipment_number);
 
@@ -240,6 +249,31 @@ drop policy if exists "dev_all_shipments" on public.shipments;
 drop policy if exists "dev_all_shipment_items" on public.shipment_items;
 drop policy if exists "dev_all_part_material_requirements" on public.part_material_requirements;
 drop policy if exists "dev_all_part_route_steps" on public.part_route_steps;
+
+-- Kiracı / anon politikaları — migration tekrar koşturulursa 42710 önlenir
+drop policy if exists "material_categories_tenant" on public.material_categories;
+drop policy if exists "material_categories_anon_health_select" on public.material_categories;
+drop policy if exists "materials_tenant" on public.materials;
+drop policy if exists "locations_tenant" on public.locations;
+drop policy if exists "import_batches_tenant" on public.import_batches;
+drop policy if exists "import_rows_tenant" on public.import_rows;
+drop policy if exists "companies_tenant" on public.companies;
+drop policy if exists "departments_tenant" on public.departments;
+drop policy if exists "users_legacy_tenant" on public.users;
+drop policy if exists "suppliers_tenant" on public.suppliers;
+drop policy if exists "material_supplier_relations_tenant" on public.material_supplier_relations;
+drop policy if exists "assembly_groups_tenant" on public.assembly_groups;
+drop policy if exists "parts_tenant" on public.parts;
+drop policy if exists "operation_assignments_tenant" on public.operation_assignments;
+drop policy if exists "part_material_requirements_tenant" on public.part_material_requirements;
+drop policy if exists "part_route_steps_tenant" on public.part_route_steps;
+drop policy if exists "products_tenant" on public.products;
+drop policy if exists "product_stock_items_tenant" on public.product_stock_items;
+drop policy if exists "production_orders_tenant" on public.production_orders;
+drop policy if exists "production_order_lines_tenant" on public.production_order_lines;
+drop policy if exists "stock_movements_tenant" on public.stock_movements;
+drop policy if exists "shipments_tenant" on public.shipments;
+drop policy if exists "shipment_items_tenant" on public.shipment_items;
 
 -- ---------------------------------------------------------------------------
 -- Kiracı RLS: doğrudan factory_id taşıyan tablolar
