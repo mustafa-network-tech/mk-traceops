@@ -28,6 +28,8 @@ type Row = {
   material?: Material;
   company?: Company;
   assembly?: AssemblyGroup;
+  /** Bu parçayı üst olarak kullanan alt parça bağlantı sayısı. */
+  childLinkCount?: number;
 };
 
 export function PartListWithFilters({ rows }: { rows: Row[] }) {
@@ -70,7 +72,7 @@ export function PartListWithFilters({ rows }: { rows: Row[] }) {
     <div>
       <PageHeader
         title="Ana parça listesi"
-        description="Excel aktarımı sonrası parça kartları: malzeme, ölçü, operasyon, atanan firma ve montaj grubu."
+        description="Excel aktarımı sonrası parça kartları: malzeme, ölçü, operasyon, atanan firma ve montaj grubu. Çok seviyeli BOM için sayfanın altında üst–alt parça bağlantılarını tanımlayın; MRP ve üretim çıkışı bu ağacı patlatır."
         breadcrumbs={[
           { label: "Kokpit", href: "/kokpit" },
           { label: "Parça listesi" },
@@ -134,11 +136,12 @@ export function PartListWithFilters({ rows }: { rows: Row[] }) {
               <TableHead>Operasyon</TableHead>
               <TableHead>Firma</TableHead>
               <TableHead>Montaj</TableHead>
+              <TableHead className="text-right">Alt bağlantı</TableHead>
               <TableHead>Tip</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.map(({ part, material, company, assembly }) => (
+            {filtered.map(({ part, material, company, assembly, childLinkCount }) => (
               <TableRow key={part.id}>
                 <TableCell className="font-mono text-xs">{part.partCode}</TableCell>
                 <TableCell>{part.description}</TableCell>
@@ -163,6 +166,9 @@ export function PartListWithFilters({ rows }: { rows: Row[] }) {
                 <TableCell className="text-sm">{company?.name ?? "—"}</TableCell>
                 <TableCell className="font-mono text-xs">
                   {assembly?.code ?? "—"}
+                </TableCell>
+                <TableCell className="text-right tabular-nums text-xs">
+                  {childLinkCount ?? 0}
                 </TableCell>
                 <TableCell className="text-xs">
                   {part.type.replaceAll("_", " ")}

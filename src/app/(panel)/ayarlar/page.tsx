@@ -12,20 +12,27 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { BomExplosionDepthSettings } from "@/components/features/bom-explosion-depth-settings";
 import {
   listCompanies,
   listDepartments,
   listLocations,
   listUsers,
 } from "@/lib/data/supabase-data";
+import { hasPermission } from "@/lib/rbac/helpers";
+import { getRbacSession } from "@/lib/rbac/session-server";
 
 export default async function AyarlarPage() {
-  const [companies, departments, locations, users] = await Promise.all([
+  const [ctx, companies, departments, locations, users] = await Promise.all([
+    getRbacSession(),
     listCompanies(),
     listDepartments(),
     listLocations(),
     listUsers(),
   ]);
+
+  const canEditBomDepth = hasPermission(ctx, "company_settings", "update");
+  const bomDepth = ctx?.factory?.bomExplosionMaxDepth ?? 24;
 
   return (
     <div>
@@ -37,6 +44,19 @@ export default async function AyarlarPage() {
           { label: "Ayarlar" },
         ]}
       />
+
+      <Card className="mb-4">
+        <CardHeader>
+          <CardTitle>Üretim — BOM patlatma derinliği</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <BomExplosionDepthSettings
+            initialDepth={bomDepth}
+            factoryName={ctx?.factory?.factoryName}
+            canEdit={canEditBomDepth}
+          />
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>

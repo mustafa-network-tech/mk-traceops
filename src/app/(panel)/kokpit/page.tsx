@@ -16,23 +16,33 @@ import {
   listSuppliers,
 } from "@/lib/data/supabase-data";
 import { formatDateTime, formatNumber } from "@/lib/format";
+import { hasPermission } from "@/lib/rbac/helpers";
+import { getRbacSession } from "@/lib/rbac/session-server";
 import {
   getDashboardMetrics,
   getProductionTrend,
   getRecentStockMovements,
   getStockMixChart,
 } from "@/lib/services/dashboardService";
+import { computeMrpShortages } from "@/lib/services/mrpService";
 
 export default async function KokpitPage() {
-  const [m, recent, trend, mix, materials, locations, suppliers] =
+  const ctx = await getRbacSession();
+  const canReadProductionOrders = hasPermission(ctx, "production_orders", "read");
+  const canMrp = hasPermission(ctx, "mrp", "read");
+
+  const [m, recent, trend, mix, materials, locations, suppliers, mrpRows] =
     await Promise.all([
-      getDashboardMetrics(),
+      getDashboardMetrics({
+        includeProductionOrderMetrics: canReadProductionOrders,
+      }),
       getRecentStockMovements(),
       Promise.resolve(getProductionTrend()),
       Promise.resolve(getStockMixChart()),
       listMaterials(),
       listLocations(),
       listSuppliers(),
+      canMrp ? computeMrpShortages() : Promise.resolve([]),
     ]);
 
   const matById = new Map(materials.map((x) => [x.id, x]));
@@ -45,6 +55,9 @@ export default async function KokpitPage() {
     { label: "Ham madde kalemi", value: m.rawMaterialCount },
     { label: "Sarf malzeme kalemi", value: m.consumableCount },
     { label: "Kritik stok uyarısı", value: m.criticalStockCount },
+    ...(canMrp
+      ? [{ label: "MRP risk kalemi", value: mrpRows.length }]
+      : []),
     { label: "Bekleyen / üretimde UE", value: m.pendingProductionOrders },
     { label: "Bu ay tamamlanan UE", value: m.completedProductionThisMonth },
     { label: "Ürün stok SKU", value: m.productStockSkus },

@@ -8,6 +8,7 @@ import {
   getExpectedExcelColumns,
   getExpectedHamMaddeExcelColumns,
   getExpectedListeExcelColumns,
+  getExpectedPartLinkExcelColumns,
   type ExcelImportRowKind,
 } from "@/lib/services/importService";
 
@@ -34,6 +35,33 @@ const LISTE_HEADER_NORMAL_TO_KEY: Record<string, string> = (() => {
   }
   return m;
 })();
+
+/** Parça bağlantı sayfası: normalize başlık → kanonik anahtar. */
+const PART_LINK_HEADER_NORMAL_TO_KEY: Record<string, string> = (() => {
+  const m: Record<string, string> = {};
+  for (const { key } of getExpectedPartLinkExcelColumns()) {
+    m[normalizeHeader(key)] = key;
+  }
+  const syn: Record<string, string> = {
+    [normalizeHeader("PARENT_CODE")]: "ÜST_KODU",
+    [normalizeHeader("UST_KODU")]: "ÜST_KODU",
+    [normalizeHeader("CHILD_CODE")]: "ALT_KODU",
+    [normalizeHeader("ALT_KOD")]: "ALT_KODU",
+    [normalizeHeader("QTY_PER_PARENT")]: "ÜST_BASINA",
+    [normalizeHeader("QUANTITY")]: "ÜST_BASINA",
+    [normalizeHeader("MİKTAR")]: "ÜST_BASINA",
+  };
+  for (const [k, v] of Object.entries(syn)) {
+    if (!m[k]) m[k] = v;
+  }
+  return m;
+})();
+
+function matchPartLinkCanonicalHeader(cellHeader: string): string | null {
+  const n = normalizeHeader(cellHeader);
+  if (!n) return null;
+  return PART_LINK_HEADER_NORMAL_TO_KEY[n] ?? null;
+}
 
 function matchListeCanonicalHeader(cellHeader: string): string | null {
   const n = normalizeHeader(cellHeader);
@@ -239,6 +267,61 @@ function parseHamSheetRows(
 }
 
 const LISTE_HEADER_SCORE_KEYS = ["KODU", "GRUP", "AÇIKLAMA"] as const;
+
+const PART_LINK_HEADER_SCORE_KEYS = ["ÜST_KODU", "ALT_KODU"] as const;
+
+function parsePartLinkSheetRows(
+  sheet: XLSX.WorkSheet,
+  matchHeader: (cellHeader: string) => string | null,
+): {
+  headerRow: unknown[];
+  allRows: unknown[][];
+  colToCanonical: (string | null)[];
+  headerRowIndex: number;
+} {
+  const allRows = XLSX.utils.sheet_to_json<(string | number | null)[]>(sheet, {
+    header: 1,
+    defval: "",
+    raw: false,
+  }) as unknown[][];
+
+  if (allRows.length === 0) {
+    return {
+      headerRow: [],
+      allRows: [],
+      colToCanonical: [],
+      headerRowIndex: 0,
+    };
+  }
+
+  const scan = Math.min(15, allRows.length);
+  let bestIdx = 0;
+  let bestScore = -1;
+  for (let r = 0; r < scan; r++) {
+    const row = allRows[r] ?? [];
+    const colMap = row.map((h) =>
+      typeof h === "string" || typeof h === "number"
+        ? matchHeader(cellToString(h))
+        : null,
+    );
+    const score = PART_LINK_HEADER_SCORE_KEYS.filter((req) =>
+      colMap.some((c) => c === req),
+    ).length;
+    if (score > bestScore) {
+      bestScore = score;
+      bestIdx = r;
+    }
+  }
+
+  const headerRow = allRows[bestIdx] ?? [];
+  const colToCanonical = headerRow.map((h) =>
+    typeof h === "string" || typeof h === "number"
+      ? matchHeader(cellToString(h))
+      : null,
+  );
+
+  return { headerRow, allRows, colToCanonical, headerRowIndex: bestIdx };
+}
 
 function parseListeSheetRows(
   sheet: XLSX.WorkSheet,
@@ -547,6 +630,74 @@ function appendHamMaddePreparedRows(
   return { ok: true, seq };
 }
 
+function appendPartLinkPreparedRows(
+  workbook: XLSX.WorkBook,
+  prepared: PreparedImportRow[],
+  startSeq: number,
+  excludeSheetNames: Set<string>,
+): { ok: true; seq: number } | { ok: false; error: string } {
+  let seq = startSeq;
+
+  for (const sheetName of workbook.SheetNames) {
+    if (excludeSheetNames.has(sheetName)) continue;
+    const sheet = workbook.Sheets[sheetName];
+    if (!sheet) continue;
+
+    const {
+      headerRow,
+      allRows,
+      colToCanonical,
+      headerRowIndex,
+    } = parsePartLinkSheetRows(sheet, matchPartLinkCanonicalHeader);
+
+    const hasUst = colToCanonical.some((c) => c === "ÜST_KODU");
+    const hasAlt = colToCanonical.some((c) => c === "ALT_KODU");
+    const hasListeKodu = colToCanonical.some((c) => c === "KODU");
+    if (!hasUst || !hasAlt || hasListeKodu) continue;
+
+    for (let i = headerRowIndex + 1; i < allRows.length; i++) {
+      const line = allRows[i] as unknown[] | undefined;
+      const { rawData, anyNonEmpty } = buildRawDataLine(
+        line,
+        headerRow,
+        colToCanonical,
+        "parca_baglanti",
+      );
+      if (!anyNonEmpty) continue;
+
+      const ust = (rawData["ÜST_KODU"] ?? "").trim();
+      const alt = (rawData["ALT_KODU"] ?? "").trim();
+      if (!ust && !alt) continue;
+
+      if (prepared.length >= EXCEL_MAX_DATA_ROWS) {
+        return {
+          ok: false,
+          error: `En fazla ${EXCEL_MAX_DATA_ROWS.toLocaleString("tr-TR")} veri satırı yüklenebilir.`,
+        };
+      }
+
+      seq += 1;
+      if (!ust || !alt) {
+        prepared.push({
+          rowIndex: seq,
+          rawData,
+          status: "hata",
+          message: "ÜST_KODU ve ALT_KODU birlikte zorunludur.",
+        });
+        continue;
+      }
+
+      prepared.push({
+        rowIndex: seq,
+        rawData,
+        status: "bekliyor",
+      });
+    }
+  }
+
+  return { ok: true, seq };
+}
+
 /**
  * MK3Ops: «LİSTE» — `raw_data` yalnızca Excel sütun başlıkları + `_excel_row_kind` (Parça Kodu vb. eşlemesi yok).
  * `import-sync` KODU, GRUP, HAMMADDE… okur. Formül: hesaplanmış değer. Türev: `liste-import-derivations.ts`.
@@ -703,6 +854,21 @@ export function parseProductionExcelBuffer(buf: ArrayBuffer): ExcelParseResult {
   const hamAppend = appendHamMaddePreparedRows(workbook, prepared, seq);
   if (!hamAppend.ok) return { ok: false, error: hamAppend.error };
   seq = hamAppend.seq;
+
+  const excludePartLinkSheets = new Set<string>();
+  if (listeHit?.sheetName) excludePartLinkSheets.add(listeHit.sheetName);
+  const hamSheetNm = resolveHamSheetName(workbook);
+  if (hamSheetNm) excludePartLinkSheets.add(hamSheetNm);
+  if (!useListe && firstName) excludePartLinkSheets.add(firstName);
+
+  const partLinkAppend = appendPartLinkPreparedRows(
+    workbook,
+    prepared,
+    seq,
+    excludePartLinkSheets,
+  );
+  if (!partLinkAppend.ok) return { ok: false, error: partLinkAppend.error };
+  seq = partLinkAppend.seq;
 
   if (prepared.length === 0) {
     return {

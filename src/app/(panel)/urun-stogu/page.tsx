@@ -19,14 +19,19 @@ import {
   listShipmentItems,
   listShipments,
 } from "@/lib/data/supabase-data";
+import { hasPermission } from "@/lib/rbac/helpers";
+import { getRbacSession } from "@/lib/rbac/session-server";
 
 export default async function UrunStoguPage() {
+  const ctx = await getRbacSession();
+  const canReadProductionOrders = hasPermission(ctx, "production_orders", "read");
+
   const [items, products, locations, orders, shipItems, shipments] =
     await Promise.all([
       listProductStockItems(),
       listProducts(),
       listLocations(),
-      listProductionOrders(),
+      canReadProductionOrders ? listProductionOrders() : Promise.resolve([]),
       listShipmentItems(),
       listShipments(),
     ]);

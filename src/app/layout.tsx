@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
+import { SonnerToaster } from "@/components/ui/sonner-toaster";
 import { brand } from "@/lib/constants/brand";
 
 import "./globals.css";
@@ -27,7 +28,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="tr" className={`${geistSans.variable} ${geistMono.variable} h-full`}>
-      <body className="min-h-full antialiased">{children}</body>
+      <body className="min-h-full antialiased">
+        {children}
+        <SonnerToaster />
+      </body>
     </html>
   );
 }

@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { ProductionStatusBadge } from "@/components/domain/status-badges";
 import { PageHeader } from "@/components/layout/page-header";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -11,6 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { CreateDraftProductionOrderForm } from "@/components/features/create-draft-production-order-form";
 import {
   listAssemblyGroups,
   listDepartments,
@@ -18,8 +20,15 @@ import {
   listProductionOrders,
 } from "@/lib/data/supabase-data";
 import { formatDate } from "@/lib/format";
+import { hasPermission } from "@/lib/rbac/helpers";
+import { requirePanelModule } from "@/lib/rbac/require-panel-module";
+import { getRbacSession } from "@/lib/rbac/session-server";
 
 export default async function UretimEmirleriPage() {
+  await requirePanelModule("production_orders", "read");
+  const ctx = await getRbacSession();
+  const canCreateOrder = hasPermission(ctx, "production_orders", "create");
+
   const [orders, products, assemblies, departments] = await Promise.all([
     listProductionOrders(),
     listProducts(),
@@ -35,12 +44,20 @@ export default async function UretimEmirleriPage() {
     <div>
       <PageHeader
         title="Üretim emirleri"
-        description="Mamul, montaj grubu, planlanan/üretilen miktar ve bölüm. Malzeme sarfiyatı detay sayfasında satır bazlı görülür."
+        description="Taslak emirler onaylanmadan stok çıkışına kapalıdır. Onaylı kalemlerde üretim çıkışı kullanılır. Detayda malzeme sarfiyatı satır bazlıdır."
         breadcrumbs={[
           { label: "Kokpit", href: "/kokpit" },
           { label: "Üretim emirleri" },
         ]}
       />
+
+      {canCreateOrder ? (
+        <CreateDraftProductionOrderForm
+          products={products}
+          departments={departments}
+          assemblies={assemblies}
+        />
+      ) : null}
 
       <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
         <Table>
@@ -50,6 +67,7 @@ export default async function UretimEmirleriPage() {
               <TableHead>Ürün</TableHead>
               <TableHead>Montaj</TableHead>
               <TableHead>Durum</TableHead>
+              <TableHead>Onay</TableHead>
               <TableHead className="text-right">Plan</TableHead>
               <TableHead className="text-right">Üretilen</TableHead>
               <TableHead>Tarih</TableHead>
@@ -78,6 +96,15 @@ export default async function UretimEmirleriPage() {
                   <TableCell className="text-sm">{ag?.code ?? "—"}</TableCell>
                   <TableCell>
                     <ProductionStatusBadge status={o.status} />
+                  </TableCell>
+                  <TableCell>
+                    {o.approvedAt ? (
+                      <Badge variant="success">Evet</Badge>
+                    ) : o.status === "taslak" ? (
+                      <Badge variant="warning">Bekliyor</Badge>
+                    ) : (
+                      <Badge variant="muted">—</Badge>
+                    )}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
                     {o.quantityPlanned}

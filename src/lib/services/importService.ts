@@ -1,7 +1,8 @@
 /**
- * MK3Ops LİSTE Excel’indeki **sütun başlıkları** (GRUP, KODU, HAMMADDE, ROTA…) — sistem buna uyar.
+ * MK3Ops LİSTE Excel’indeki **sütun başlıkları** (GRUP, KODU, HAMMADDE, ROTA, isteğe bağlı ÜST_PARÇA_KODU…) — sistem buna uyar.
  * `raw_data` yalnızca bu başlıklar + `_excel_row_kind`; `import-sync` aynı anahtarları okur (eski Parça Kodu şablonu yedek).
  * Tanınmayan ek sütunlar da Excel başlığıyla `raw_data`’ya yazılır (`excelParse`).
+ * Üçüncü sayfa: `getExpectedPartLinkExcelColumns()` — `parca_baglanti` satırları (`excelParse`).
  */
 export function getExpectedListeExcelColumns(): { key: string; aciklama: string }[] {
   return [
@@ -42,6 +43,44 @@ export function getExpectedListeExcelColumns(): { key: string; aciklama: string 
     { key: "HMD AĞIRLIK", aciklama: "Ağırlık" },
     { key: "SATINALMA DURUMU", aciklama: "Satın alma durumu" },
     { key: "ROTA", aciklama: "Rota metni — öncelikli Operasyon alanı" },
+    {
+      key: "ÜST_PARÇA_KODU",
+      aciklama:
+        "Opsiyonel: bu satırdaki parça (KODU) bu üst parçanın altıdır; çok seviyeli BOM. Üst satırı aynı aktarımda önce/sonra olabilir.",
+    },
+    {
+      key: "ÜST_BAŞINA",
+      aciklama:
+        "Opsiyonel: üst parça başına alt miktar (ÜST_PARÇA_KODU doluysa; boşsa 1).",
+    },
+  ];
+}
+
+/**
+ * 3. çalışma sayfası (opsiyonel): üst → alt parça kodları. Sayfa adı: «Parça Bağlantıları» vb.
+ * LİSTE / Ham Maddeler sayfaları dışında kalan bir sayfada bu başlıklar tanınırsa satırlar okunur.
+ */
+export function getExpectedPartLinkExcelColumns(): {
+  key: string;
+  aciklama: string;
+}[] {
+  return [
+    {
+      key: "ÜST_KODU",
+      aciklama: "Üst parça kodu (fabrikadaki parts.part_code ile eşleşir)",
+    },
+    {
+      key: "ALT_KODU",
+      aciklama: "Alt parça kodu (aynı aktarımda veya mevcut parça kartları)",
+    },
+    {
+      key: "ÜST_BASINA",
+      aciklama: "Üst parça başına alt miktar (boşsa 1)",
+    },
+    {
+      key: "BİRİM",
+      aciklama: "Bağlantı birimi (boşsa adet)",
+    },
   ];
 }
 
@@ -94,4 +133,4 @@ export function getExpectedHamMaddeExcelColumns(): {
 
 /** import_rows.raw_data içinde; Excel sütunu değil. */
 export const EXCEL_ROW_KIND_KEY = "_excel_row_kind";
-export type ExcelImportRowKind = "ana_parça" | "ham_madde";
+export type ExcelImportRowKind = "ana_parça" | "ham_madde" | "parca_baglanti";

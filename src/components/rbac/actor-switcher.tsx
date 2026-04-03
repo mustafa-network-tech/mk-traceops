@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 
 import { setRbacSessionUserAction } from "@/app/actions/rbac-session";
+import { toastActionError } from "@/lib/client/action-toast";
 import {
   Select,
   SelectContent,
@@ -42,7 +43,7 @@ export function ActorSwitcher({
           startTransition(async () => {
             const r = await setRbacSessionUserAction(id);
             if (!r.ok) {
-              globalThis.alert(r.error);
+              toastActionError(r.error);
               return;
             }
             const actor = actors.find((a) => a.id === id);

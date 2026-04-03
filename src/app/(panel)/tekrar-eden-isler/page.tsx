@@ -8,9 +8,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { requirePanelModule } from "@/lib/rbac/require-panel-module";
 import { getRecurringPartsReport } from "@/lib/services/reportingService";
 
 export default async function TekrarEdenIslerPage() {
+  await requirePanelModule("production_orders", "read");
+
   const rows = await getRecurringPartsReport();
 
   return (

@@ -19,21 +19,29 @@ function startOfMonthIso() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
 }
 
-export async function getDashboardMetrics(): Promise<DashboardMetrics> {
+export async function getDashboardMetrics(options?: {
+  /** false: üretim emri listesi çekilmez; UE sayaçları 0 (RBAC ile uyum). */
+  includeProductionOrderMetrics?: boolean;
+}): Promise<DashboardMetrics> {
+  const includePo = options?.includeProductionOrderMetrics !== false;
   const parts = await listParts();
   const groups = await listAssemblyGroups();
   const mats = await listMaterials();
   const raw = mats.filter((m) => m.type === "ham_madde");
   const sarf = mats.filter((m) => m.type === "sarf_malzeme");
   const critical = mats.filter((m) => m.currentStock <= m.minStock);
-  const orders = await listProductionOrders();
-  const pending = orders.filter(
-    (o) => o.status === "planlandı" || o.status === "üretimde",
-  ).length;
-  const monthStart = startOfMonthIso();
-  const completedThisMonth = orders.filter(
-    (o) => o.status === "tamamlandı" && o.scheduledDate >= monthStart,
-  ).length;
+  let pending = 0;
+  let completedThisMonth = 0;
+  if (includePo) {
+    const orders = await listProductionOrders();
+    pending = orders.filter(
+      (o) => o.status === "planlandı" || o.status === "üretimde",
+    ).length;
+    const monthStart = startOfMonthIso();
+    completedThisMonth = orders.filter(
+      (o) => o.status === "tamamlandı" && o.scheduledDate >= monthStart,
+    ).length;
+  }
   const stocks = await listProductStockItems();
   const openShipments = (await listShipments()).filter(
     (s) => s.status !== "teslim_edildi" && s.status !== "iptal",

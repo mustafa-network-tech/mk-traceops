@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { registerFactoryApplicantAction } from "@/app/actions/factory-self-register";
+import { toastActionError } from "@/lib/client/action-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,7 +13,6 @@ import { normalizeFactorySlug } from "@/lib/services/factory-slug";
 
 export function RegisterFactoryForm() {
   const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [slugPreview, setSlugPreview] = useState("");
 
@@ -21,7 +21,6 @@ export function RegisterFactoryForm() {
       className="space-y-4"
       onSubmit={async (e) => {
         e.preventDefault();
-        setError(null);
         setPending(true);
         const fd = new FormData(e.currentTarget);
         try {
@@ -34,7 +33,7 @@ export function RegisterFactoryForm() {
             factorySlugRaw: String(fd.get("factorySlug") ?? ""),
           });
           if (!r.ok) {
-            setError(r.error);
+            toastActionError(r.error);
             return;
           }
           if (r.needsEmailConfirm) {
@@ -44,17 +43,12 @@ export function RegisterFactoryForm() {
           router.refresh();
           router.push("/basvuru-bekleniyor");
         } catch {
-          setError("Kayıt sırasında bir hata oluştu.");
+          toastActionError("Kayıt sırasında bir hata oluştu.");
         } finally {
           setPending(false);
         }
       }}
     >
-      {error ? (
-        <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
-          {error}
-        </p>
-      ) : null}
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="reg-fn">Ad</Label>

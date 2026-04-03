@@ -12,6 +12,7 @@ import type {
   MaterialSupplierRelation,
   OperationAssignment,
   Part,
+  PartChildPart,
   PartMaterialRequirement,
   PartRouteStep,
   Product,
@@ -236,6 +237,8 @@ export function mapProductionOrder(r: Row): ProductionOrder {
     scheduledDate: r.scheduled_date as string,
     departmentId: r.department_id as string,
     notes: (r.notes as string) ?? undefined,
+    approvedAt: (r.approved_at as string) ?? undefined,
+    approvedById: (r.approved_by as string) ?? undefined,
   };
 }
 
@@ -276,6 +279,50 @@ export function mapPart(r: Row): Part {
     type: r.type as Part["type"],
     importRowId: (r.import_row_id as string) ?? undefined,
   };
+}
+
+export function mapPartChildPart(r: Row): PartChildPart {
+  return {
+    id: r.id as string,
+    parentPartId: r.parent_part_id as string,
+    childPartId: r.child_part_id as string,
+    quantityPerParent: Number(r.quantity_per_parent),
+    unit: (r.unit as string) || "adet",
+    note: (r.note as string) ?? undefined,
+  };
+}
+
+/** Kök parça miktarı için DB patlatması (MRP / rapor). */
+export type ExplodedBomMaterial = {
+  materialId: string;
+  quantity: number;
+  unit: string;
+};
+
+export async function explodePartBom(
+  partId: string,
+  quantity: number,
+): Promise<ExplodedBomMaterial[]> {
+  const s = await factoryScope();
+  if (!s || quantity <= 0 || !Number.isFinite(quantity)) return [];
+  const { data, error } = await s.c.rpc("explode_part_bom", {
+    p_root_part_id: partId,
+    p_quantity: quantity,
+  });
+  if (error) throw new Error(error.message);
+  const rows =
+    (data as
+      | Array<{
+          material_id: string;
+          quantity: number | string;
+          unit: string | null;
+        }>
+      | null) ?? [];
+  return rows.map((r) => ({
+    materialId: r.material_id,
+    quantity: Number(r.quantity),
+    unit: (r.unit && String(r.unit).trim()) || "adet",
+  }));
 }
 
 export function mapOperationAssignment(r: Row): OperationAssignment {
@@ -676,6 +723,79 @@ export async function getProductionOrderLines(
   return (data as Row[] | null)?.map(mapProductionOrderLine) ?? [];
 }
 
+function normPartProductKey(s: string): string {
+  return s.trim().toLocaleLowerCase("tr-TR");
+}
+
+/** Ürün kodu/adı ↔ parça kodu (record_production_output ile aynı kural). */
+export async function resolvePartForProductId(
+  productId: string,
+): Promise<Part | undefined> {
+  const product = await getProduct(productId);
+  if (!product) return undefined;
+  const parts = await listParts();
+  const c = normPartProductKey(product.code);
+  const n = normPartProductKey(product.name);
+  return (
+    parts.find((p) => normPartProductKey(p.partCode) === c) ??
+    parts.find((p) => normPartProductKey(p.partCode) === n)
+  );
+}
+
+export type ProductionOrderBomPreviewRow = {
+  materialId: string;
+  code: string;
+  name: string;
+  quantity: number;
+  unit: string;
+};
+
+/** Plan miktarı için patlatılmış BOM önizlemesi (UE satırı yazmaz). */
+export async function getProductionOrderBomPreview(
+  orderId: string,
+): Promise<
+  | { ok: true; rows: ProductionOrderBomPreviewRow[] }
+  | { ok: false; message: string }
+> {
+  const order = await getProductionOrder(orderId);
+  if (!order) return { ok: false, message: "Üretim emri bulunamadı." };
+  const part = await resolvePartForProductId(order.productId);
+  if (!part) {
+    return {
+      ok: false,
+      message:
+        "Mamul için parça eşleşmesi yok (ürün kodu veya adı, parça kartı part_code ile eşleşmeli).",
+    };
+  }
+  let exploded: Awaited<ReturnType<typeof explodePartBom>>;
+  try {
+    exploded = await explodePartBom(part.id, order.quantityPlanned);
+  } catch {
+    return { ok: false, message: "BOM patlatması hesaplanamadı." };
+  }
+  if (exploded.length === 0) {
+    return {
+      ok: false,
+      message:
+        "Patlatılmış BOM boş: kök ve alt parçalarda malzeme satırı tanımlayın.",
+    };
+  }
+  const materials = await listMaterials();
+  const byId = new Map(materials.map((m) => [m.id, m]));
+  const rows: ProductionOrderBomPreviewRow[] = [];
+  for (const e of exploded) {
+    const m = byId.get(e.materialId);
+    rows.push({
+      materialId: e.materialId,
+      code: m?.code ?? String(e.materialId).slice(0, 8),
+      name: m?.name ?? "—",
+      quantity: e.quantity,
+      unit: e.unit,
+    });
+  }
+  return { ok: true, rows };
+}
+
 export async function filterProductionOrders(
   f: ReportFilter,
 ): Promise<ProductionOrder[]> {
@@ -720,6 +840,52 @@ export async function listParts(): Promise<Part[]> {
     .order("part_code");
   if (error) throw new Error(error.message);
   return (data as Row[] | null)?.map(mapPart) ?? [];
+}
+
+/** Fabrikadaki parça → alt parça bağlantıları. */
+export async function listPartChildParts(): Promise<PartChildPart[]> {
+  const parts = await listParts();
+  const s = await factoryScope();
+  if (!s || parts.length === 0) return [];
+  const ids = parts.map((p) => p.id);
+  const chunk = 200;
+  const out: PartChildPart[] = [];
+  for (let i = 0; i < ids.length; i += chunk) {
+    const slice = ids.slice(i, i + chunk);
+    const { data, error } = await s.c
+      .from("part_child_parts")
+      .select("*")
+      .in("parent_part_id", slice);
+    if (error) throw new Error(error.message);
+    for (const r of (data as Row[] | null) ?? []) {
+      out.push(mapPartChildPart(r));
+    }
+  }
+  return out;
+}
+
+/** Fabrikadaki parçaların BOM satırları (MRP / rapor). */
+export async function listPartMaterialRequirements(): Promise<
+  PartMaterialRequirement[]
+> {
+  const parts = await listParts();
+  const s = await factoryScope();
+  if (!s || parts.length === 0) return [];
+  const ids = parts.map((p) => p.id);
+  const chunk = 200;
+  const out: PartMaterialRequirement[] = [];
+  for (let i = 0; i < ids.length; i += chunk) {
+    const slice = ids.slice(i, i + chunk);
+    const { data, error } = await s.c
+      .from("part_material_requirements")
+      .select("*")
+      .in("part_id", slice);
+    if (error) throw new Error(error.message);
+    for (const r of (data as Row[] | null) ?? []) {
+      out.push(mapPartMaterialRequirement(r));
+    }
+  }
+  return out;
 }
 
 /** Parçalardaki quantity toplamı (malzeme başına). Depo stoğu değil; Excel Adet satırlarının özeti. */

@@ -4,6 +4,10 @@ import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 
 import { inviteFactoryUserAction } from "@/app/actions/company-users";
+import {
+  toastActionError,
+  toastActionSuccess,
+} from "@/lib/client/action-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -47,9 +51,10 @@ export function CompanyInviteForm() {
               role,
             });
             if (!r.ok) {
-              globalThis.alert(r.error);
+              toastActionError(r.error);
               return;
             }
+            toastActionSuccess("Davet oluşturuldu.");
             router.refresh();
           });
         }}

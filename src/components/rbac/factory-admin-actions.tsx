@@ -7,6 +7,10 @@ import {
   setFactoryPackageAction,
   setFactoryStatusAction,
 } from "@/app/actions/platform-factories";
+import {
+  toastActionError,
+  toastActionSuccess,
+} from "@/lib/client/action-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,7 +32,11 @@ export function FactoryAdminActions({ factoryId }: { factoryId: string }) {
             onClick={() => {
               startTransition(async () => {
                 const r = await setFactoryStatusAction(factoryId, "active");
-                if (!r.ok) globalThis.alert(r.error);
+                if (!r.ok) {
+                  toastActionError(r.error);
+                  return;
+                }
+                toastActionSuccess("Fabrika durumu: aktif.");
                 router.refresh();
               });
             }}
@@ -43,7 +51,11 @@ export function FactoryAdminActions({ factoryId }: { factoryId: string }) {
             onClick={() => {
               startTransition(async () => {
                 const r = await setFactoryStatusAction(factoryId, "passive");
-                if (!r.ok) globalThis.alert(r.error);
+                if (!r.ok) {
+                  toastActionError(r.error);
+                  return;
+                }
+                toastActionSuccess("Fabrika durumu: pasif.");
                 router.refresh();
               });
             }}
@@ -58,7 +70,11 @@ export function FactoryAdminActions({ factoryId }: { factoryId: string }) {
             onClick={() => {
               startTransition(async () => {
                 const r = await setFactoryStatusAction(factoryId, "suspended");
-                if (!r.ok) globalThis.alert(r.error);
+                if (!r.ok) {
+                  toastActionError(r.error);
+                  return;
+                }
+                toastActionSuccess("Fabrika askıya alındı.");
                 router.refresh();
               });
             }}
@@ -76,7 +92,11 @@ export function FactoryAdminActions({ factoryId }: { factoryId: string }) {
           const pkg = String(fd.get("packageStatus") ?? "");
           startTransition(async () => {
             const r = await setFactoryPackageAction(factoryId, pkg);
-            if (!r.ok) globalThis.alert(r.error);
+            if (!r.ok) {
+              toastActionError(r.error);
+              return;
+            }
+            toastActionSuccess("Paket bilgisi güncellendi.");
             router.refresh();
           });
         }}

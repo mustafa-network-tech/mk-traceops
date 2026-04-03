@@ -44,6 +44,8 @@ export type ReportsSectionProps = {
   suppliers: Supplier[];
   products: Product[];
   assemblies: AssemblyGroup[];
+  /** Üretim emri raporları ve yakın UE sütunu (server ile aynı RBAC). */
+  canReadProductionOrders?: boolean;
 };
 
 export function ReportsSection({
@@ -51,6 +53,7 @@ export function ReportsSection({
   suppliers,
   products,
   assemblies,
+  canReadProductionOrders = true,
 }: ReportsSectionProps) {
   const [tab, setTab] = useState("stok");
   const [dateFrom, setDateFrom] = useState("2026-03-01");
@@ -106,6 +109,15 @@ export function ReportsSection({
       cancelled = true;
     };
   }, [baseFilter]);
+
+  useEffect(() => {
+    if (
+      !canReadProductionOrders &&
+      (tab === "uretim" || tab === "kullanim")
+    ) {
+      setTab("stok");
+    }
+  }, [canReadProductionOrders, tab]);
 
   const b = bundle;
 
@@ -223,22 +235,24 @@ export function ReportsSection({
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1.5">
-            <Label>Üretim durumu</Label>
-            <Select value={prodStatus} onValueChange={setProdStatus}>
-              <SelectTrigger>
-                <SelectValue placeholder="Tümü" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tümü</SelectItem>
-                <SelectItem value="taslak">Taslak</SelectItem>
-                <SelectItem value="planlandı">Planlandı</SelectItem>
-                <SelectItem value="üretimde">Üretimde</SelectItem>
-                <SelectItem value="tamamlandı">Tamamlandı</SelectItem>
-                <SelectItem value="iptal">İptal</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {canReadProductionOrders ? (
+            <div className="space-y-1.5">
+              <Label>Üretim durumu</Label>
+              <Select value={prodStatus} onValueChange={setProdStatus}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Tümü" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tümü</SelectItem>
+                  <SelectItem value="taslak">Taslak</SelectItem>
+                  <SelectItem value="planlandı">Planlandı</SelectItem>
+                  <SelectItem value="üretimde">Üretimde</SelectItem>
+                  <SelectItem value="tamamlandı">Tamamlandı</SelectItem>
+                  <SelectItem value="iptal">İptal</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 
@@ -252,9 +266,13 @@ export function ReportsSection({
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="flex h-auto min-h-9 w-full flex-wrap justify-start gap-1">
           <TabsTrigger value="stok">Stok hareket</TabsTrigger>
-          <TabsTrigger value="kullanim">Malzeme kullanım</TabsTrigger>
+          {canReadProductionOrders ? (
+            <TabsTrigger value="kullanim">Malzeme kullanım</TabsTrigger>
+          ) : null}
           <TabsTrigger value="fiyat">Tedarikçi fiyat</TabsTrigger>
-          <TabsTrigger value="uretim">Üretim</TabsTrigger>
+          {canReadProductionOrders ? (
+            <TabsTrigger value="uretim">Üretim</TabsTrigger>
+          ) : null}
           <TabsTrigger value="mamul">Ürün stok</TabsTrigger>
           <TabsTrigger value="sevk">Sevkiyat</TabsTrigger>
           <TabsTrigger value="tekrar">Tekrar eden</TabsTrigger>
@@ -294,39 +312,41 @@ export function ReportsSection({
           </ReportCard>
         </TabsContent>
 
-        <TabsContent value="kullanim">
-          <ReportCard title="Malzeme kullanım raporu (üretim emri satırları)">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Malzeme</TableHead>
-                  <TableHead>Üretim emri</TableHead>
-                  <TableHead>Ürün</TableHead>
-                  <TableHead className="text-right">Miktar</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(b?.kullanim ?? []).map(
-                  ({ line, material, order, product }) => (
-                    <TableRow key={line.id}>
-                      <TableCell>
-                        <div className="font-mono text-xs">{material?.code}</div>
-                        <div className="text-sm">{material?.name}</div>
-                      </TableCell>
-                      <TableCell className="font-mono text-xs">
-                        {order?.orderNo}
-                      </TableCell>
-                      <TableCell className="text-sm">{product?.name}</TableCell>
-                      <TableCell className="text-right font-mono text-sm">
-                        {formatNumber(line.quantityUsed, line.unit)}
-                      </TableCell>
-                    </TableRow>
-                  ),
-                )}
-              </TableBody>
-            </Table>
-          </ReportCard>
-        </TabsContent>
+        {canReadProductionOrders ? (
+          <TabsContent value="kullanim">
+            <ReportCard title="Malzeme kullanım raporu (üretim emri satırları)">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Malzeme</TableHead>
+                    <TableHead>Üretim emri</TableHead>
+                    <TableHead>Ürün</TableHead>
+                    <TableHead className="text-right">Miktar</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(b?.kullanim ?? []).map(
+                    ({ line, material, order, product }) => (
+                      <TableRow key={line.id}>
+                        <TableCell>
+                          <div className="font-mono text-xs">{material?.code}</div>
+                          <div className="text-sm">{material?.name}</div>
+                        </TableCell>
+                        <TableCell className="font-mono text-xs">
+                          {order?.orderNo}
+                        </TableCell>
+                        <TableCell className="text-sm">{product?.name}</TableCell>
+                        <TableCell className="text-right font-mono text-sm">
+                          {formatNumber(line.quantityUsed, line.unit)}
+                        </TableCell>
+                      </TableRow>
+                    ),
+                  )}
+                </TableBody>
+              </Table>
+            </ReportCard>
+          </TabsContent>
+        ) : null}
 
         <TabsContent value="fiyat">
           <ReportCard title="Tedarikçi bazlı son fiyat">
@@ -379,42 +399,44 @@ export function ReportsSection({
           </ReportCard>
         </TabsContent>
 
-        <TabsContent value="uretim">
-          <ReportCard title="Üretim raporu">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Emir</TableHead>
-                  <TableHead>Ürün</TableHead>
-                  <TableHead>Montaj</TableHead>
-                  <TableHead>Durum</TableHead>
-                  <TableHead className="text-right">Plan / Üretilen</TableHead>
-                  <TableHead>Tarih</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(b?.uretim ?? []).map(({ order, product, assembly }) => (
-                  <TableRow key={order.id}>
-                    <TableCell className="font-mono text-xs font-semibold">
-                      {order.orderNo}
-                    </TableCell>
-                    <TableCell className="text-sm">{product?.name}</TableCell>
-                    <TableCell className="text-xs">
-                      {assembly?.code ?? "—"}
-                    </TableCell>
-                    <TableCell>
-                      <ProductionStatusBadge status={order.status} />
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums text-sm">
-                      {order.quantityPlanned} / {order.quantityProduced}
-                    </TableCell>
-                    <TableCell>{formatDate(order.scheduledDate)}</TableCell>
+        {canReadProductionOrders ? (
+          <TabsContent value="uretim">
+            <ReportCard title="Üretim raporu">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Emir</TableHead>
+                    <TableHead>Ürün</TableHead>
+                    <TableHead>Montaj</TableHead>
+                    <TableHead>Durum</TableHead>
+                    <TableHead className="text-right">Plan / Üretilen</TableHead>
+                    <TableHead>Tarih</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </ReportCard>
-        </TabsContent>
+                </TableHeader>
+                <TableBody>
+                  {(b?.uretim ?? []).map(({ order, product, assembly }) => (
+                    <TableRow key={order.id}>
+                      <TableCell className="font-mono text-xs font-semibold">
+                        {order.orderNo}
+                      </TableCell>
+                      <TableCell className="text-sm">{product?.name}</TableCell>
+                      <TableCell className="text-xs">
+                        {assembly?.code ?? "—"}
+                      </TableCell>
+                      <TableCell>
+                        <ProductionStatusBadge status={order.status} />
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums text-sm">
+                        {order.quantityPlanned} / {order.quantityProduced}
+                      </TableCell>
+                      <TableCell>{formatDate(order.scheduledDate)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </ReportCard>
+          </TabsContent>
+        ) : null}
 
         <TabsContent value="mamul">
           <ReportCard title="Ürün stok raporu">
@@ -424,7 +446,9 @@ export function ReportsSection({
                   <TableHead>Ürün</TableHead>
                   <TableHead className="text-right">Stok</TableHead>
                   <TableHead>Son üretim</TableHead>
-                  <TableHead>Yakın UE</TableHead>
+                  {canReadProductionOrders ? (
+                    <TableHead>Yakın UE</TableHead>
+                  ) : null}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -446,9 +470,13 @@ export function ReportsSection({
                           ? formatDate(stock.lastProductionDate)
                           : "—"}
                       </TableCell>
-                      <TableCell className="text-xs">
-                        {recentOrders.map((o: ProductionOrder) => o.orderNo).join(", ") || "—"}
-                      </TableCell>
+                      {canReadProductionOrders ? (
+                        <TableCell className="text-xs">
+                          {recentOrders
+                            .map((o: ProductionOrder) => o.orderNo)
+                            .join(", ") || "—"}
+                        </TableCell>
+                      ) : null}
                     </TableRow>
                   ))}
               </TableBody>

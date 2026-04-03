@@ -15,7 +15,8 @@ export type ModuleKey =
   | "stock_movements"
   | "shipments"
   | "suppliers"
-  | "reports";
+  | "reports"
+  | "mrp";
 
 /** İzin eylemi. */
 export type ActionKey =

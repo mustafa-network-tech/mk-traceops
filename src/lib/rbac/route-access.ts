@@ -27,6 +27,7 @@ export const PANEL_ROUTE_RULES: {
   { prefix: "/urun-stogu", module: "warehouse_stock", action: "read" },
   { prefix: "/sevkiyatlar", module: "shipments", action: "read" },
   { prefix: "/tekrar-eden-isler", module: "production_orders", action: "read" },
+  { prefix: "/mrp", module: "mrp", action: "read" },
   { prefix: "/raporlama", module: "reports", action: "read" },
   { prefix: "/ayarlar", module: "company_settings", action: "read" },
 ];

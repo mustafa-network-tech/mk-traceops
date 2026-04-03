@@ -14,8 +14,11 @@ import {
   listParts,
 } from "@/lib/data/supabase-data";
 import { formatDate } from "@/lib/format";
+import { requirePanelModule } from "@/lib/rbac/require-panel-module";
 
 export default async function IsAtamaPage() {
+  await requirePanelModule("production_orders", "read");
+
   const [assignments, parts, companies] = await Promise.all([
     listOperationAssignments(),
     listParts(),

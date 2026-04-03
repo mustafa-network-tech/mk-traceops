@@ -25,12 +25,19 @@ import {
   listPartsByBatchId,
 } from "@/lib/data/supabase-data";
 import { formatDateTime } from "@/lib/format";
+import { hasPermission } from "@/lib/rbac/helpers";
+import { requirePanelModule } from "@/lib/rbac/require-panel-module";
+import { getRbacSession } from "@/lib/rbac/session-server";
 
 export const dynamic = "force-dynamic";
 
 type Props = { params: Promise<{ id: string }> };
 
 export default async function AktarimBatchDetailPage({ params }: Props) {
+  await requirePanelModule("excel_import", "read");
+  const ctx = await getRbacSession();
+  const canDeleteImport = hasPermission(ctx, "excel_import", "update");
+
   const { id } = await params;
   const batch = await getImportBatchById(id);
   if (!batch) notFound();
@@ -82,6 +89,7 @@ export default async function AktarimBatchDetailPage({ params }: Props) {
               batchId={id}
               fileLabel={batch.fileName}
               redirectTo="/aktarim-gecmisi"
+              canDelete={canDeleteImport}
             />
             <Link
               href="/aktarim-gecmisi"

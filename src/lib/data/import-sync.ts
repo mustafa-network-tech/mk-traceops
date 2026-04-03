@@ -230,10 +230,124 @@ async function ensureMaterialSupplierLink(
   });
 }
 
+function normPartCodeKey(s: string): string {
+  return s.trim().toLocaleLowerCase("tr-TR");
+}
+
+/**
+ * Parça kodunu fabrikada çözümler: önce aynı import batch, sonra tüm fabrika.
+ */
+async function resolvePartIdByCodeForImport(
+  supabase: SupabaseClient,
+  factoryId: string,
+  batchId: string,
+  code: string,
+): Promise<string | null> {
+  const key = normPartCodeKey(code);
+  if (!key) return null;
+
+  const { data: batchParts } = await supabase
+    .from("parts")
+    .select("id, part_code")
+    .eq("factory_id", factoryId)
+    .eq("import_batch_id", batchId);
+
+  const inBatch = batchParts?.find(
+    (p) => normPartCodeKey(p.part_code as string) === key,
+  );
+  if (inBatch?.id) return inBatch.id as string;
+
+  const { data: anyParts } = await supabase
+    .from("parts")
+    .select("id, part_code")
+    .eq("factory_id", factoryId);
+
+  const hit = anyParts?.find(
+    (p) => normPartCodeKey(p.part_code as string) === key,
+  );
+  return (hit?.id as string) ?? null;
+}
+
+/** LİSTE satırındaki ÜST_PARÇA_KODU → part_child_parts (tüm parça satırları işlendikten sonra). */
+async function applyListeUstParcaLinks(
+  supabase: SupabaseClient,
+  batchId: string,
+  factoryId: string,
+): Promise<void> {
+  const { data: doneRows, error } = await supabase
+    .from("import_rows")
+    .select("id, raw_data, linked_part_id")
+    .eq("batch_id", batchId)
+    .eq("status", "işlendi")
+    .not("linked_part_id", "is", null);
+
+  if (error) throw new Error(error.message);
+
+  for (const r of doneRows ?? []) {
+    const rd = r.raw_data as Record<string, unknown>;
+    const kind = (rd[EXCEL_ROW_KIND_KEY] as string) || "ana_parça";
+    if (kind !== "ana_parça") continue;
+
+    const ust = cell(rd, "ÜST_PARÇA_KODU");
+    if (!ust) continue;
+
+    const childId = r.linked_part_id as string;
+    const parentId = await resolvePartIdByCodeForImport(
+      supabase,
+      factoryId,
+      batchId,
+      ust,
+    );
+
+    if (!parentId) {
+      await supabase
+        .from("import_rows")
+        .update({
+          status: "hata",
+          message: `Üst parça bulunamadı: ${ust}`,
+        })
+        .eq("id", r.id);
+      continue;
+    }
+
+    if (parentId === childId) {
+      await supabase
+        .from("import_rows")
+        .update({
+          status: "hata",
+          message: "Üst ve alt parça aynı olamaz.",
+        })
+        .eq("id", r.id);
+      continue;
+    }
+
+    const qRaw = parseOptionalNumber(cell(rd, "ÜST_BAŞINA"));
+    const qty = qRaw > 0 ? qRaw : 1;
+
+    const { error: insErr } = await supabase.from("part_child_parts").insert({
+      parent_part_id: parentId,
+      child_part_id: childId,
+      quantity_per_parent: qty,
+      unit: "adet",
+    });
+
+    if (insErr) {
+      await supabase
+        .from("import_rows")
+        .update({
+          status: "hata",
+          message: insErr.message,
+        })
+        .eq("id", r.id);
+    }
+  }
+}
+
 /**
  * import_rows (bekliyor) → assembly_groups + materials + parts + tedarikçi /
  * malzeme–tedarikçi ilişkisi (Firma doluysa) + satır güncelleme.
  * Ham madde sayfası satırları yalnızca materials (+ isteğe bağlı ilişki) oluşturur.
+ * Parça bağlantı satırları (parca_baglanti) parça oluşturulduktan ve LİSTE üst kodları uygulandıktan sonra işlenir.
  */
 export async function syncPartsFromImportBatch(
   supabase: SupabaseClient,
@@ -280,7 +394,29 @@ export async function syncPartsFromImportBatch(
 
   if (rowErr) throw new Error(rowErr.message);
 
+  type ImportRow = NonNullable<typeof rows>[number];
+  const linkRows: ImportRow[] = [];
+  const workRows: ImportRow[] = [];
+
   for (const row of rows ?? []) {
+    const rd = row.raw_data as Record<string, unknown>;
+    const rowKind = (rd[EXCEL_ROW_KIND_KEY] as string) || "ana_parça";
+    if (rowKind === "parca_baglanti") linkRows.push(row);
+    else workRows.push(row);
+  }
+
+  const sortWork = [...workRows].sort((a, b) => {
+    const ak =
+      ((a.raw_data as Record<string, unknown>)[EXCEL_ROW_KIND_KEY] as string) ||
+      "ana_parça";
+    const bk =
+      ((b.raw_data as Record<string, unknown>)[EXCEL_ROW_KIND_KEY] as string) ||
+      "ana_parça";
+    const ord = (k: string) => (k === "ham_madde" ? 0 : 1);
+    return ord(ak) - ord(bk);
+  });
+
+  for (const row of sortWork) {
     const rd = row.raw_data as Record<string, unknown>;
     const rowKind = (rd[EXCEL_ROW_KIND_KEY] as string) || "ana_parça";
 
@@ -604,6 +740,92 @@ export async function syncPartsFromImportBatch(
         linked_part_id: partId,
         status: "işlendi",
         message: null,
+      })
+      .eq("id", row.id);
+  }
+
+  await applyListeUstParcaLinks(supabase, batchId, factoryId);
+
+  for (const row of linkRows) {
+    const rd = row.raw_data as Record<string, unknown>;
+    const ust = cell(rd, "ÜST_KODU");
+    const alt = cell(rd, "ALT_KODU");
+    const qRaw = parseOptionalNumber(cell(rd, "ÜST_BASINA"));
+    const qty = qRaw > 0 ? qRaw : 1;
+    const unit = (cell(rd, "BİRİM") || "adet").trim().slice(0, 32) || "adet";
+
+    const parentId = await resolvePartIdByCodeForImport(
+      supabase,
+      factoryId,
+      batchId,
+      ust,
+    );
+    const childId = await resolvePartIdByCodeForImport(
+      supabase,
+      factoryId,
+      batchId,
+      alt,
+    );
+
+    if (!ust || !alt) {
+      await supabase
+        .from("import_rows")
+        .update({
+          status: "hata",
+          message: "ÜST_KODU ve ALT_KODU zorunlu.",
+        })
+        .eq("id", row.id);
+      continue;
+    }
+
+    if (!parentId || !childId) {
+      await supabase
+        .from("import_rows")
+        .update({
+          status: "hata",
+          message: !parentId
+            ? `Üst parça bulunamadı: ${ust}`
+            : `Alt parça bulunamadı: ${alt}`,
+        })
+        .eq("id", row.id);
+      continue;
+    }
+
+    if (parentId === childId) {
+      await supabase
+        .from("import_rows")
+        .update({
+          status: "hata",
+          message: "Üst ve alt parça aynı olamaz.",
+        })
+        .eq("id", row.id);
+      continue;
+    }
+
+    const { error: linkErr } = await supabase.from("part_child_parts").insert({
+      parent_part_id: parentId,
+      child_part_id: childId,
+      quantity_per_parent: qty,
+      unit,
+    });
+
+    if (linkErr) {
+      await supabase
+        .from("import_rows")
+        .update({
+          status: "hata",
+          message: linkErr.message,
+        })
+        .eq("id", row.id);
+      continue;
+    }
+
+    await supabase
+      .from("import_rows")
+      .update({
+        status: "işlendi",
+        message: null,
+        linked_part_id: null,
       })
       .eq("id", row.id);
   }

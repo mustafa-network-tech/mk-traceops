@@ -9,6 +9,10 @@ import {
   changeFactoryUserRoleAction,
   setFactoryUserActiveAction,
 } from "@/app/actions/company-users";
+import {
+  toastActionError,
+  toastActionSuccess,
+} from "@/lib/client/action-toast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -95,7 +99,11 @@ export function CompanyUsersPanel({
                                 targetUserId: u.id,
                                 newRole,
                               });
-                              if (!r.ok) globalThis.alert(r.error);
+                              if (!r.ok) {
+                                toastActionError(r.error);
+                                return;
+                              }
+                              toastActionSuccess("Rol güncellendi.");
                               router.refresh();
                             });
                           }}
@@ -125,7 +133,15 @@ export function CompanyUsersPanel({
                               targetUserId: u.id,
                               active: u.status !== "active",
                             });
-                            if (!r.ok) globalThis.alert(r.error);
+                            if (!r.ok) {
+                              toastActionError(r.error);
+                              return;
+                            }
+                            toastActionSuccess(
+                              u.status === "active"
+                                ? "Kullanıcı pasifleştirildi."
+                                : "Kullanıcı aktifleştirildi.",
+                            );
                             router.refresh();
                           });
                         }}
@@ -178,7 +194,11 @@ export function CompanyUsersPanel({
                           onClick={() => {
                             startTransition(async () => {
                               const r = await acceptInvitationAction(i.id);
-                              if (!r.ok) globalThis.alert(r.error);
+                              if (!r.ok) {
+                                toastActionError(r.error);
+                                return;
+                              }
+                              toastActionSuccess("Davet kabul edildi.");
                               router.refresh();
                             });
                           }}
@@ -193,7 +213,11 @@ export function CompanyUsersPanel({
                           onClick={() => {
                             startTransition(async () => {
                               const r = await cancelInvitationAction(i.id);
-                              if (!r.ok) globalThis.alert(r.error);
+                              if (!r.ok) {
+                                toastActionError(r.error);
+                                return;
+                              }
+                              toastActionSuccess("Davet iptal edildi.");
                               router.refresh();
                             });
                           }}

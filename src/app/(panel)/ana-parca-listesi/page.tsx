@@ -1,22 +1,37 @@
+import { PartChildLinksPanel } from "@/components/features/part-child-links-panel";
 import { PartListWithFilters } from "@/components/features/part-list-with-filters";
 import {
   listAssemblyGroups,
   listCompanies,
   listMaterials,
+  listPartChildParts,
   listParts,
 } from "@/lib/data/supabase-data";
+import { hasPermission } from "@/lib/rbac/helpers";
+import { getRbacSession } from "@/lib/rbac/session-server";
 
 export default async function AnaParcaListesiPage() {
-  const [parts, materials, companies, assemblies] = await Promise.all([
-    listParts(),
-    listMaterials(),
-    listCompanies(),
-    listAssemblyGroups(),
-  ]);
+  const [ctx, parts, materials, companies, assemblies, childLinks] =
+    await Promise.all([
+      getRbacSession(),
+      listParts(),
+      listMaterials(),
+      listCompanies(),
+      listAssemblyGroups(),
+      listPartChildParts(),
+    ]);
+
+  const canEditPartBom = hasPermission(ctx, "parts_materials", "update");
 
   const matById = new Map(materials.map((m) => [m.id, m]));
   const compById = new Map(companies.map((c) => [c.id, c]));
   const agById = new Map(assemblies.map((a) => [a.id, a]));
+
+  const childLinkCountByParent: Record<string, number> = {};
+  for (const l of childLinks) {
+    childLinkCountByParent[l.parentPartId] =
+      (childLinkCountByParent[l.parentPartId] ?? 0) + 1;
+  }
 
   const rows = parts.map((part) => ({
     part,
@@ -27,7 +42,17 @@ export default async function AnaParcaListesiPage() {
     assembly: part.assemblyGroupId
       ? agById.get(part.assemblyGroupId)
       : undefined,
+    childLinkCount: childLinkCountByParent[part.id] ?? 0,
   }));
 
-  return <PartListWithFilters rows={rows} />;
+  return (
+    <div>
+      <PartListWithFilters rows={rows} />
+      <PartChildLinksPanel
+        parts={parts}
+        links={childLinks}
+        canEdit={canEditPartBom}
+      />
+    </div>
+  );
 }

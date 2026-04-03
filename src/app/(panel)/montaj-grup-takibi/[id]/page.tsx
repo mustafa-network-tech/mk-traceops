@@ -21,6 +21,8 @@ import {
   listPartsByAssemblyGroupId,
   listProductionOrders,
 } from "@/lib/data/supabase-data";
+import { hasPermission } from "@/lib/rbac/helpers";
+import { getRbacSession } from "@/lib/rbac/session-server";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -29,11 +31,14 @@ export default async function MontajGrupDetayPage({ params }: Props) {
   const g = await getAssemblyGroup(id);
   if (!g) notFound();
 
+  const ctx = await getRbacSession();
+  const canReadProductionOrders = hasPermission(ctx, "production_orders", "read");
+
   const [parts, materials, companies, allOrders] = await Promise.all([
     listPartsByAssemblyGroupId(id),
     listMaterials(),
     listCompanies(),
-    listProductionOrders(),
+    canReadProductionOrders ? listProductionOrders() : Promise.resolve([]),
   ]);
 
   const partIds = parts.map((p) => p.id);
@@ -105,7 +110,11 @@ export default async function MontajGrupDetayPage({ params }: Props) {
             <CardTitle className="text-sm">İlgili üretim emri</CardTitle>
           </CardHeader>
           <CardContent className="text-sm">
-            {orders.length ? orders.map((o) => o.orderNo).join(", ") : "—"}
+            {!canReadProductionOrders
+              ? "—"
+              : orders.length
+                ? orders.map((o) => o.orderNo).join(", ")
+                : "—"}
           </CardContent>
         </Card>
       </div>

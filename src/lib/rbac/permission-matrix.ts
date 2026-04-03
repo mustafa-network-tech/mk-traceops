@@ -60,6 +60,7 @@ export const ROLE_PERMISSIONS: Record<RoleKey, string[]> = {
     P("suppliers", "update"),
     P("suppliers", "delete"),
     P("reports", "read"),
+    P("mrp", "read"),
     P("user_management", "read"),
     P("user_management", "create"),
     P("user_management", "update"),
@@ -79,6 +80,7 @@ export const ROLE_PERMISSIONS: Record<RoleKey, string[]> = {
     P("parts_materials", "read"),
     P("assembly_groups", "read"),
     P("reports", "read"),
+    P("mrp", "read"),
   ],
   WAREHOUSE_USER: [
     P("dashboard", "read"),
@@ -90,6 +92,7 @@ export const ROLE_PERMISSIONS: Record<RoleKey, string[]> = {
     P("stock_movements", "update"),
     P("parts_materials", "read"),
     P("reports", "read"),
+    P("mrp", "read"),
   ],
   SHIPMENT_USER: [
     P("dashboard", "read"),
@@ -98,6 +101,7 @@ export const ROLE_PERMISSIONS: Record<RoleKey, string[]> = {
     P("shipments", "update"),
     P("warehouse_stock", "read"),
     P("reports", "read"),
+    P("mrp", "read"),
   ],
   VIEWER: [P("dashboard", "read"), P("reports", "read")],
 };

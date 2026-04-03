@@ -1,6 +1,7 @@
 "use server";
 
 import { persistExcelImport } from "@/lib/data/import-persist";
+import { requirePermission } from "@/lib/rbac/action-gate";
 import { EXCEL_MAX_BYTES, parseProductionExcelBuffer } from "@/lib/services/excelParse";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 
@@ -17,6 +18,11 @@ export async function uploadExcelImportAction(
       error:
         "Supabase yapılandırılmamış. .env.local içinde NEXT_PUBLIC_SUPABASE_URL ve ANON_KEY tanımlayın.",
     };
+  }
+
+  const gate = await requirePermission("excel_import", "create");
+  if (!gate.ok) {
+    return { ok: false, error: gate.error };
   }
 
   const file = formData.get("file");

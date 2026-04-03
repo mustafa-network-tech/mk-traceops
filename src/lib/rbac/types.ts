@@ -25,6 +25,8 @@ export interface Factory {
   createdAt: string;
   approvedByPlatformAdminId?: string;
   approvedAt?: string;
+  /** Parça BOM patlatma ve bağlantı döngü kontrolü (seviye üst sınırı). */
+  bomExplosionMaxDepth: number;
 }
 
 export interface FactoryRequest {

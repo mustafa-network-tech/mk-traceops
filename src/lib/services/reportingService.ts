@@ -113,9 +113,13 @@ export async function getProductionReportRows(f: ReportFilter) {
   return out;
 }
 
-export async function getProductStockReportRows() {
+export async function getProductStockReportRows(options?: {
+  /** false: üretim emri listesi çekilmez; yakın UE sütunu boş kalır (RBAC). */
+  includeRecentOrders?: boolean;
+}) {
+  const includeRecent = options?.includeRecentOrders !== false;
   const stocks = await listProductStockItems();
-  const orders = await listProductionOrders();
+  const orders = includeRecent ? await listProductionOrders() : [];
   const out = [];
   for (const ps of stocks) {
     out.push({

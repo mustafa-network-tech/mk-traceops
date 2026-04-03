@@ -4,6 +4,10 @@ import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 
 import { deleteImportBatchAction } from "@/app/actions/import-batch-delete";
+import {
+  toastActionError,
+  toastActionSuccess,
+} from "@/lib/client/action-toast";
 import { Button } from "@/components/ui/button";
 
 type Props = {
@@ -13,6 +17,8 @@ type Props = {
   redirectTo?: string;
   variant?: "destructive" | "outline";
   size?: "sm" | "default";
+  /** false ise buton gösterilmez (excel_import güncelleme yetkisi yok) */
+  canDelete?: boolean;
 };
 
 export function DeleteImportBatchButton({
@@ -21,7 +27,11 @@ export function DeleteImportBatchButton({
   redirectTo,
   variant = "destructive",
   size = "sm",
+  canDelete = true,
 }: Props) {
+  if (!canDelete) {
+    return null;
+  }
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
@@ -34,9 +44,10 @@ export function DeleteImportBatchButton({
     startTransition(async () => {
       const r = await deleteImportBatchAction(batchId);
       if (!r.ok) {
-        globalThis.alert(r.error);
+        toastActionError(r.error);
         return;
       }
+      toastActionSuccess("Aktarım ve ilişkili veriler silindi.");
       if (redirectTo) router.push(redirectTo);
       else router.refresh();
     });

@@ -15,10 +15,17 @@ import { DeleteImportBatchButton } from "@/components/features/delete-import-bat
 import { listImportBatches } from "@/lib/data/import-queries";
 import { getUser } from "@/lib/data/supabase-data";
 import { formatDateTime } from "@/lib/format";
+import { hasPermission } from "@/lib/rbac/helpers";
+import { requirePanelModule } from "@/lib/rbac/require-panel-module";
+import { getRbacSession } from "@/lib/rbac/session-server";
 
 export const dynamic = "force-dynamic";
 
 export default async function AktarimGecmisiPage() {
+  await requirePanelModule("excel_import", "read");
+  const ctx = await getRbacSession();
+  const canDeleteImport = hasPermission(ctx, "excel_import", "update");
+
   const batches = await listImportBatches();
 
   const uploaderIds = [
@@ -108,6 +115,7 @@ export default async function AktarimGecmisiPage() {
                       batchId={b.id}
                       fileLabel={b.fileName}
                       variant="outline"
+                      canDelete={canDeleteImport}
                     />
                   </TableCell>
                 </TableRow>

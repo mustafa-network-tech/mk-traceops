@@ -7,6 +7,7 @@ import {
   History,
   Layers,
   LayoutDashboard,
+  LineChart,
   Package,
   PackageOpen,
   Repeat,
@@ -56,6 +57,12 @@ export const mainNav: NavItem[] = [
     title: "Üretim Emirleri",
     href: "/uretim-emirleri",
     icon: Factory,
+  },
+  {
+    title: "MRP / İhtiyaç",
+    href: "/mrp",
+    icon: LineChart,
+    description: "Kritik stok ve açık üretim emrine göre malzeme riski",
   },
   {
     title: "Montaj / Grup Takibi",

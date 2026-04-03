@@ -25,6 +25,11 @@ type ProfileRow = {
 };
 
 function mapFactory(r: Record<string, unknown>): Factory {
+  const depthRaw = r.bom_explosion_max_depth;
+  const depth =
+    depthRaw == null || depthRaw === ""
+      ? 24
+      : Number(depthRaw);
   return {
     id: r.id as string,
     factoryName: r.name as string,
@@ -34,6 +39,7 @@ function mapFactory(r: Record<string, unknown>): Factory {
     createdAt: r.created_at as string,
     approvedByPlatformAdminId: (r.approved_by as string) ?? undefined,
     approvedAt: (r.approved_at as string) ?? undefined,
+    bomExplosionMaxDepth: Number.isFinite(depth) ? depth : 24,
   };
 }
 

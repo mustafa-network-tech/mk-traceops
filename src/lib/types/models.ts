@@ -67,6 +67,16 @@ export interface PartMaterialRequirement {
   note?: string;
 }
 
+/** Üst parça → alt parça (çok seviyeli BOM ağacı). */
+export interface PartChildPart {
+  id: string;
+  parentPartId: string;
+  childPartId: string;
+  quantityPerParent: number;
+  unit: string;
+  note?: string;
+}
+
 /** Excel rota metninden türetilen işlem adımı. */
 export interface PartRouteStep {
   id: string;
@@ -185,6 +195,9 @@ export interface ProductionOrder {
   scheduledDate: string;
   departmentId: string;
   notes?: string;
+  /** Planlamaya alındı / onaylandı; üretim çıkışı için zorunlu. */
+  approvedAt?: string;
+  approvedById?: string;
 }
 
 export interface ProductionOrderLine {

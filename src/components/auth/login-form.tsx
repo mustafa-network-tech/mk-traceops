@@ -5,13 +5,13 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { toastActionError } from "@/lib/client/action-toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export function LoginForm() {
   const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
   return (
@@ -19,7 +19,6 @@ export function LoginForm() {
       className="space-y-4"
       onSubmit={async (e) => {
         e.preventDefault();
-        setError(null);
         setPending(true);
         const fd = new FormData(e.currentTarget);
         const email = String(fd.get("email") ?? "").trim();
@@ -31,23 +30,18 @@ export function LoginForm() {
             password,
           });
           if (err) {
-            setError("E-posta veya şifre hatalı.");
+            toastActionError("E-posta veya şifre hatalı.");
             return;
           }
           router.refresh();
           router.push("/kokpit");
         } catch {
-          setError("Giriş sırasında bir hata oluştu.");
+          toastActionError("Giriş sırasında bir hata oluştu.");
         } finally {
           setPending(false);
         }
       }}
     >
-      {error ? (
-        <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
-          {error}
-        </p>
-      ) : null}
       <div className="space-y-1.5">
         <Label htmlFor="login-email">E-posta</Label>
         <Input

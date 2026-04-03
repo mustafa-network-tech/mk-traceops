@@ -7,6 +7,10 @@ import {
   approveFactoryRequestAction,
   rejectFactoryRequestAction,
 } from "@/app/actions/platform-factories";
+import {
+  toastActionError,
+  toastActionSuccess,
+} from "@/lib/client/action-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -44,10 +48,10 @@ export function ApproveFactoryForm({
             packageStatus: String(fd.get("packageStatus") ?? "trial") || "trial",
           });
           if (!r.ok) {
-            globalThis.alert(r.error);
+            toastActionError(r.error);
             return;
           }
-          globalThis.alert(
+          toastActionSuccess(
             lockApplicantEmail
               ? "Fabrika onaylandı. Başvuran kullanıcı fabrika yöneticisi olarak atandı."
               : "Fabrika onaylandı ve ilk yönetici oluşturuldu.",
@@ -124,9 +128,10 @@ export function ApproveFactoryForm({
             startTransition(async () => {
               const r = await rejectFactoryRequestAction(requestId);
               if (!r.ok) {
-                globalThis.alert(r.error);
+                toastActionError(r.error);
                 return;
               }
+              toastActionSuccess("Başvuru reddedildi.");
               router.refresh();
             });
           }}
