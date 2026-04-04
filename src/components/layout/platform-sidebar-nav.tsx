@@ -7,6 +7,7 @@ import {
   ClipboardList,
   FileSpreadsheet,
   LayoutDashboard,
+  Waypoints,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 
@@ -15,10 +16,15 @@ import { cn } from "@/lib/utils";
 
 const items = [
   { title: "Platform özeti", href: "/platform", icon: LayoutDashboard },
+  {
+    title: "Fabrika akışı & izleme",
+    href: "/platform/fabrika-akisi",
+    icon: Waypoints,
+  },
   { title: "Onay bekleyen fabrikalar", href: "/platform/fabrika-talepleri", icon: ClipboardList },
   { title: "Fabrikalar", href: "/platform/fabrikalar", icon: Building2 },
   { title: "Excel aktarımları", href: "/platform/excel-aktarimlar", icon: FileSpreadsheet },
-  { title: "Fabrika hareketleri", href: "/platform/fabrika-hareketleri", icon: Activity },
+  { title: "Stok & üretim hareketleri", href: "/platform/fabrika-hareketleri", icon: Activity },
 ];
 
 export function PlatformSidebarNav({ onNavigate }: { onNavigate?: () => void }) {
@@ -30,7 +36,8 @@ export function PlatformSidebarNav({ onNavigate }: { onNavigate?: () => void }) 
         {items.map((item) => {
           const active =
             pathname === item.href ||
-            (item.href !== "/platform" && pathname.startsWith(item.href));
+            (item.href !== "/platform" &&
+              pathname.startsWith(`${item.href}/`));
           return (
             <Link
               key={item.href}

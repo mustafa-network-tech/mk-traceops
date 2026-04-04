@@ -28,9 +28,23 @@ export default async function PlatformHomePage() {
     <div>
       <PageHeader
         title="Platform özeti"
-        description="Kiracı fabrikalar ve talepler. Excel aktarımları ile stok / üretim emri hareketleri menüden salt okunur izlenebilir."
+        description="Kiracı fabrikalar ve talepler. Fabrikaların işleyişi için «Fabrika akışı & izleme» sayfasını kullanın."
         breadcrumbs={[{ label: "Platform" }]}
       />
+
+      <Card className="mb-6 border-violet-300 bg-gradient-to-br from-violet-50 to-white shadow-sm">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg text-violet-950">Fabrikaların işleyişi ve akışı</CardTitle>
+          <CardDescription className="text-violet-900/90">
+            Excel yüklemeleri, stok ve üretim emri hareketlerini tek yerden açın (salt okunur).
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button asChild size="lg">
+            <Link href="/platform/fabrika-akisi">Fabrika akışı & izleme sayfasına git</Link>
+          </Button>
+        </CardContent>
+      </Card>
 
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
         <Card>
@@ -56,9 +70,12 @@ export default async function PlatformHomePage() {
       <Card>
         <CardHeader>
           <CardTitle>Hızlı işlemler</CardTitle>
-          <CardDescription>Fabrika yaşam döngüsü yönetimi</CardDescription>
+          <CardDescription>Fabrika yaşam döngüsü ve operasyon izleme</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
+          <Button asChild variant="secondary">
+            <Link href="/platform/fabrika-akisi">Fabrika akışı & izleme</Link>
+          </Button>
           <Button asChild>
             <Link href="/platform/fabrika-talepleri">Onay bekleyen fabrikalar</Link>
           </Button>
@@ -69,7 +86,7 @@ export default async function PlatformHomePage() {
             <Link href="/platform/excel-aktarimlar">Excel aktarımları</Link>
           </Button>
           <Button variant="outline" asChild>
-            <Link href="/platform/fabrika-hareketleri">Fabrika hareketleri</Link>
+            <Link href="/platform/fabrika-hareketleri">Stok & üretim hareketleri</Link>
           </Button>
         </CardContent>
       </Card>

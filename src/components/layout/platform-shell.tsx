@@ -31,6 +31,13 @@ export function PlatformShell({
             <span className="text-violet-700 font-medium">Platform yönetimi</span>
             <span className="text-slate-300">|</span>
             <Link
+              href="/platform/fabrika-akisi"
+              className="text-xs font-medium text-violet-800 underline-offset-2 hover:underline"
+            >
+              Fabrika akışı
+            </Link>
+            <span className="text-slate-300">|</span>
+            <Link
               href="/tanitim"
               className="text-xs text-slate-600 underline-offset-2 hover:underline"
             >
