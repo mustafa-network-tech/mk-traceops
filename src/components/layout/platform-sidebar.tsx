@@ -17,7 +17,7 @@ export function PlatformSidebar() {
       <PlatformSidebarNav />
       <Separator className="bg-violet-900" />
       <div className="p-3 text-[10px] text-violet-400">
-        Operasyonel fabrika verilerine erişim yoktur.
+        Excel aktarımları ve stok/UE listeleri salt okunur izlenir; düzenleme fabrika panelindedir.
       </div>
     </aside>
   );

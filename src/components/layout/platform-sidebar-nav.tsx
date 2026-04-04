@@ -1,7 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { Building2, ClipboardList, LayoutDashboard } from "lucide-react";
+import {
+  Activity,
+  Building2,
+  ClipboardList,
+  FileSpreadsheet,
+  LayoutDashboard,
+} from "lucide-react";
 import { usePathname } from "next/navigation";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -11,6 +17,8 @@ const items = [
   { title: "Platform özeti", href: "/platform", icon: LayoutDashboard },
   { title: "Onay bekleyen fabrikalar", href: "/platform/fabrika-talepleri", icon: ClipboardList },
   { title: "Fabrikalar", href: "/platform/fabrikalar", icon: Building2 },
+  { title: "Excel aktarımları", href: "/platform/excel-aktarimlar", icon: FileSpreadsheet },
+  { title: "Fabrika hareketleri", href: "/platform/fabrika-hareketleri", icon: Activity },
 ];
 
 export function PlatformSidebarNav({ onNavigate }: { onNavigate?: () => void }) {

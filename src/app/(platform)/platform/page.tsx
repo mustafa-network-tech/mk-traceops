@@ -28,7 +28,7 @@ export default async function PlatformHomePage() {
     <div>
       <PageHeader
         title="Platform özeti"
-        description="Kiracı fabrikalar, talepler ve paket durumu (operasyonel üretim verisi burada gösterilmez)."
+        description="Kiracı fabrikalar ve talepler. Excel aktarımları ile stok / üretim emri hareketleri menüden salt okunur izlenebilir."
         breadcrumbs={[{ label: "Platform" }]}
       />
 
@@ -64,6 +64,12 @@ export default async function PlatformHomePage() {
           </Button>
           <Button variant="outline" asChild>
             <Link href="/platform/fabrikalar">Tüm fabrikalar</Link>
+          </Button>
+          <Button variant="outline" asChild>
+            <Link href="/platform/excel-aktarimlar">Excel aktarımları</Link>
+          </Button>
+          <Button variant="outline" asChild>
+            <Link href="/platform/fabrika-hareketleri">Fabrika hareketleri</Link>
           </Button>
         </CardContent>
       </Card>
