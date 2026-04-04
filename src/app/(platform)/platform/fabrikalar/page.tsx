@@ -15,6 +15,7 @@ import {
   listFactories,
 } from "@/lib/data/rbac-supabase";
 import { formatDateTime } from "@/lib/format";
+import { isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 
 const STATUS_TR: Record<string, string> = {
   pending: "Beklemede",
@@ -63,6 +64,25 @@ export default async function FabrikalarPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
+            {rows.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="py-10 text-sm text-slate-600">
+                  <p className="font-medium text-slate-800">Kayıtlı fabrika yok veya liste yüklenemedi.</p>
+                  <p className="mt-2 max-w-xl">
+                    Veritabanında <code className="rounded bg-slate-100 px-1 text-xs">factories</code>{" "}
+                    satırı yoksa önce fabrika onayı / kayıt akışını tamamlayın. Liste RLS veya oturum
+                    yüzünden boşsa, dağıtım ortamında sunucu env&apos;ine{" "}
+                    <code className="rounded bg-slate-100 px-1 text-xs">SUPABASE_SERVICE_ROLE_KEY</code>{" "}
+                    ekleyin (platform okumaları böylece RLS&apos;yi aşar).
+                    {!isSupabaseAdminConfigured() ? (
+                      <span className="mt-1 block text-amber-800">
+                        Şu an service role anahtarı tanımlı görünmüyor.
+                      </span>
+                    ) : null}
+                  </p>
+                </TableCell>
+              </TableRow>
+            ) : null}
             {rows.map(({ factory: f, sub }) => (
               <TableRow key={f.id}>
                 <TableCell className="font-medium">{f.factoryName}</TableCell>

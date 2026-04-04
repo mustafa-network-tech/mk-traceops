@@ -1,8 +1,5 @@
-import { isPlatformAdmin } from "@/lib/rbac/helpers";
-import { getRbacSession } from "@/lib/rbac/session-server";
-import { isSupabaseConfigured } from "@/lib/supabase/env";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { mapProductionOrder } from "@/lib/data/supabase-data";
+import { createSupabaseForPlatformAdminReads } from "@/lib/data/rbac-supabase";
 import type {
   ImportBatch,
   ImportBatchStatus,
@@ -85,11 +82,6 @@ function mapImportRow(row: RowDb): ImportRow {
   };
 }
 
-async function assertPlatformAdmin(): Promise<boolean> {
-  const ctx = await getRbacSession();
-  return Boolean(ctx?.user && isPlatformAdmin(ctx.user));
-}
-
 export type PlatformImportBatchRow = ImportBatch & {
   factoryId: string;
   factoryName: string;
@@ -97,10 +89,8 @@ export type PlatformImportBatchRow = ImportBatch & {
 };
 
 export async function listPlatformImportBatches(): Promise<PlatformImportBatchRow[]> {
-  if (!isSupabaseConfigured()) return [];
-  if (!(await assertPlatformAdmin())) return [];
-
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseForPlatformAdminReads();
+  if (!supabase) return [];
   const { data, error } = await supabase
     .from("import_batches")
     .select(
@@ -126,10 +116,8 @@ export async function listPlatformImportBatches(): Promise<PlatformImportBatchRo
 export async function getPlatformImportBatch(
   id: string,
 ): Promise<PlatformImportBatchRow | null> {
-  if (!isSupabaseConfigured()) return null;
-  if (!(await assertPlatformAdmin())) return null;
-
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseForPlatformAdminReads();
+  if (!supabase) return null;
   const { data, error } = await supabase
     .from("import_batches")
     .select(
@@ -152,10 +140,8 @@ export async function getPlatformImportBatch(
 }
 
 export async function listPlatformImportRows(batchId: string): Promise<ImportRow[]> {
-  if (!isSupabaseConfigured()) return [];
-  if (!(await assertPlatformAdmin())) return [];
-
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseForPlatformAdminReads();
+  if (!supabase) return [];
   const { data, error } = await supabase
     .from("import_rows")
     .select(
@@ -205,10 +191,8 @@ export type PlatformStockMovementRow = {
 export async function listPlatformStockMovements(
   limit = 400,
 ): Promise<PlatformStockMovementRow[]> {
-  if (!isSupabaseConfigured()) return [];
-  if (!(await assertPlatformAdmin())) return [];
-
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseForPlatformAdminReads();
+  if (!supabase) return [];
   const { data, error } = await supabase
     .from("stock_movements")
     .select(
@@ -263,10 +247,8 @@ export type PlatformPartSummary = { id: string; partCode: string; description: s
 export async function listPlatformPartsByImportBatch(
   batchId: string,
 ): Promise<PlatformPartSummary[]> {
-  if (!isSupabaseConfigured()) return [];
-  if (!(await assertPlatformAdmin())) return [];
-
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseForPlatformAdminReads();
+  if (!supabase) return [];
   const { data, error } = await supabase
     .from("parts")
     .select("id, part_code, description")
@@ -288,10 +270,8 @@ export async function listPlatformPartsByImportBatch(
 export async function listPlatformProductionOrders(
   limit = 150,
 ): Promise<PlatformProductionOrderRow[]> {
-  if (!isSupabaseConfigured()) return [];
-  if (!(await assertPlatformAdmin())) return [];
-
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseForPlatformAdminReads();
+  if (!supabase) return [];
   const { data, error } = await supabase
     .from("production_orders")
     .select(

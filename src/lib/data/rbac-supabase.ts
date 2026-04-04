@@ -1,6 +1,7 @@
 import { createSupabaseAdminClient, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { dbRoleToRoleKey, roleKeyToDbRole } from "@/lib/rbac/role-map";
 import type {
   Factory,
@@ -86,6 +87,26 @@ function mapSubscription(r: Record<string, unknown>): SubscriptionRecord {
 /** Okumalar / çoğu yazma: oturum veya anon + geliştirme RLS. */
 async function db() {
   if (!isSupabaseConfigured()) return null;
+  return createSupabaseServerClient();
+}
+
+/**
+ * Yalnızca platform yöneticisi oturumunda; çapraz kiracı listeleri için Supabase istemcisi.
+ * `SUPABASE_SERVICE_ROLE_KEY` sunucuda tanımlıysa RLS tamamen bypass edilir (auth.uid /
+ * sıkı politikalar yüzünden boş liste sorununu giderir). Tanımsızsa normal kullanıcı JWT
+ * ile devam edilir.
+ *
+ * `session-server` döngüsel import olmaması için dinamik import kullanılır.
+ */
+export async function createSupabaseForPlatformAdminReads(): Promise<SupabaseClient | null> {
+  if (!isSupabaseConfigured()) return null;
+  const { getRbacSession } = await import("@/lib/rbac/session-server");
+  const { isPlatformAdmin } = await import("@/lib/rbac/helpers");
+  const ctx = await getRbacSession();
+  if (!ctx?.user || !isPlatformAdmin(ctx.user)) return null;
+  if (isSupabaseAdminConfigured()) {
+    return createSupabaseAdminClient();
+  }
   return createSupabaseServerClient();
 }
 
@@ -181,7 +202,7 @@ export async function listProfilesForSwitcher(): Promise<RbacUser[]> {
 }
 
 export async function listFactories(): Promise<Factory[]> {
-  const c = await db();
+  const c = await createSupabaseForPlatformAdminReads();
   if (!c) return [];
   const { data, error } = await c
     .from("factories")
@@ -192,7 +213,7 @@ export async function listFactories(): Promise<Factory[]> {
 }
 
 export async function getFactoryById(id: string): Promise<Factory | undefined> {
-  const c = await db();
+  const c = await createSupabaseForPlatformAdminReads();
   if (!c) return undefined;
   const { data, error } = await c
     .from("factories")
@@ -204,7 +225,7 @@ export async function getFactoryById(id: string): Promise<Factory | undefined> {
 }
 
 export async function listAllFactoryRequests(): Promise<FactoryRequest[]> {
-  const c = await db();
+  const c = await createSupabaseForPlatformAdminReads();
   if (!c) return [];
   const { data, error } = await c
     .from("factory_registration_requests")
@@ -695,7 +716,7 @@ export async function setUserActiveFlag(params: {
 export async function getSubscriptionForFactory(
   factoryId: string,
 ): Promise<SubscriptionRecord | undefined> {
-  const c = await db();
+  const c = await createSupabaseForPlatformAdminReads();
   if (!c) return undefined;
   const { data, error } = await c
     .from("factory_subscriptions")
