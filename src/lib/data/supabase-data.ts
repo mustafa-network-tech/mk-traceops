@@ -45,6 +45,29 @@ async function factoryScope(): Promise<{
 
 type Row = Record<string, unknown>;
 
+/** PostgREST/Supabase tek yanıtta genelde en fazla 1000 satır döner; tüm listeyi almak için range ile sayfalarız. */
+const LIST_PAGE_SIZE = 1000;
+
+async function selectAllRows(
+  fetchPage: (
+    from: number,
+    to: number,
+  ) => PromiseLike<{ data: Row[] | null; error: { message: string } | null }>,
+): Promise<Row[]> {
+  const out: Row[] = [];
+  let from = 0;
+  for (;;) {
+    const to = from + LIST_PAGE_SIZE - 1;
+    const { data, error } = await fetchPage(from, to);
+    if (error) throw new Error(error.message);
+    const batch = data ?? [];
+    out.push(...batch);
+    if (batch.length < LIST_PAGE_SIZE) break;
+    from += LIST_PAGE_SIZE;
+  }
+  return out;
+}
+
 export function mapCompany(r: Row): Company {
   return {
     id: r.id as string,
@@ -340,13 +363,16 @@ export function mapOperationAssignment(r: Row): OperationAssignment {
 export async function listCompanies(): Promise<Company[]> {
   const s = await factoryScope();
   if (!s) return [];
-  const { data, error } = await s.c
-    .from("companies")
-    .select("*")
-    .eq("factory_id", s.factoryId)
-    .order("name");
-  if (error) throw new Error(error.message);
-  return (data as Row[] | null)?.map(mapCompany) ?? [];
+  const data = await selectAllRows((from, to) =>
+    s.c
+      .from("companies")
+      .select("*")
+      .eq("factory_id", s.factoryId)
+      .order("name", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  return data.map(mapCompany);
 }
 
 export async function getCompany(id: string): Promise<Company | undefined> {
@@ -365,13 +391,16 @@ export async function getCompany(id: string): Promise<Company | undefined> {
 export async function listUsers(): Promise<User[]> {
   const s = await factoryScope();
   if (!s) return [];
-  const { data, error } = await s.c
-    .from("users")
-    .select("*")
-    .eq("factory_id", s.factoryId)
-    .order("full_name");
-  if (error) throw new Error(error.message);
-  return (data as Row[] | null)?.map(mapUser) ?? [];
+  const data = await selectAllRows((from, to) =>
+    s.c
+      .from("users")
+      .select("*")
+      .eq("factory_id", s.factoryId)
+      .order("full_name", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  return data.map(mapUser);
 }
 
 export async function getUser(id: string): Promise<User | undefined> {
@@ -390,13 +419,16 @@ export async function getUser(id: string): Promise<User | undefined> {
 export async function listDepartments(): Promise<Department[]> {
   const s = await factoryScope();
   if (!s) return [];
-  const { data, error } = await s.c
-    .from("departments")
-    .select("*")
-    .eq("factory_id", s.factoryId)
-    .order("name");
-  if (error) throw new Error(error.message);
-  return (data as Row[] | null)?.map(mapDepartment) ?? [];
+  const data = await selectAllRows((from, to) =>
+    s.c
+      .from("departments")
+      .select("*")
+      .eq("factory_id", s.factoryId)
+      .order("name", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  return data.map(mapDepartment);
 }
 
 export async function getDepartment(id: string): Promise<Department | undefined> {
@@ -415,13 +447,16 @@ export async function getDepartment(id: string): Promise<Department | undefined>
 export async function listLocations(): Promise<Location[]> {
   const s = await factoryScope();
   if (!s) return [];
-  const { data, error } = await s.c
-    .from("locations")
-    .select("*")
-    .eq("factory_id", s.factoryId)
-    .order("code");
-  if (error) throw new Error(error.message);
-  return (data as Row[] | null)?.map(mapLocation) ?? [];
+  const data = await selectAllRows((from, to) =>
+    s.c
+      .from("locations")
+      .select("*")
+      .eq("factory_id", s.factoryId)
+      .order("code", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  return data.map(mapLocation);
 }
 
 export async function getLocation(id: string): Promise<Location | undefined> {
@@ -440,13 +475,16 @@ export async function getLocation(id: string): Promise<Location | undefined> {
 export async function listMaterialCategories(): Promise<MaterialCategory[]> {
   const s = await factoryScope();
   if (!s) return [];
-  const { data, error } = await s.c
-    .from("material_categories")
-    .select("*")
-    .eq("factory_id", s.factoryId)
-    .order("code");
-  if (error) throw new Error(error.message);
-  return (data as Row[] | null)?.map(mapMaterialCategory) ?? [];
+  const data = await selectAllRows((from, to) =>
+    s.c
+      .from("material_categories")
+      .select("*")
+      .eq("factory_id", s.factoryId)
+      .order("code", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  return data.map(mapMaterialCategory);
 }
 
 export async function getMaterialCategory(
@@ -467,13 +505,16 @@ export async function getMaterialCategory(
 export async function listSuppliers(): Promise<Supplier[]> {
   const s = await factoryScope();
   if (!s) return [];
-  const { data, error } = await s.c
-    .from("suppliers")
-    .select("*")
-    .eq("factory_id", s.factoryId)
-    .order("name");
-  if (error) throw new Error(error.message);
-  return (data as Row[] | null)?.map(mapSupplier) ?? [];
+  const data = await selectAllRows((from, to) =>
+    s.c
+      .from("suppliers")
+      .select("*")
+      .eq("factory_id", s.factoryId)
+      .order("name", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  return data.map(mapSupplier);
 }
 
 export async function getSupplier(id: string): Promise<Supplier | undefined> {
@@ -492,13 +533,16 @@ export async function getSupplier(id: string): Promise<Supplier | undefined> {
 export async function listMaterials(): Promise<Material[]> {
   const s = await factoryScope();
   if (!s) return [];
-  const { data, error } = await s.c
-    .from("materials")
-    .select("*")
-    .eq("factory_id", s.factoryId)
-    .order("code");
-  if (error) throw new Error(error.message);
-  return (data as Row[] | null)?.map(mapMaterial) ?? [];
+  const data = await selectAllRows((from, to) =>
+    s.c
+      .from("materials")
+      .select("*")
+      .eq("factory_id", s.factoryId)
+      .order("code", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  return data.map(mapMaterial);
 }
 
 export async function getMaterial(id: string): Promise<Material | undefined> {
@@ -519,14 +563,17 @@ export async function listMaterialsByType(
 ): Promise<Material[]> {
   const s = await factoryScope();
   if (!s) return [];
-  const { data, error } = await s.c
-    .from("materials")
-    .select("*")
-    .eq("factory_id", s.factoryId)
-    .eq("type", type)
-    .order("code");
-  if (error) throw new Error(error.message);
-  return (data as Row[] | null)?.map(mapMaterial) ?? [];
+  const data = await selectAllRows((from, to) =>
+    s.c
+      .from("materials")
+      .select("*")
+      .eq("factory_id", s.factoryId)
+      .eq("type", type)
+      .order("code", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  return data.map(mapMaterial);
 }
 
 export async function listMaterialSupplierRelations(): Promise<
@@ -534,9 +581,15 @@ export async function listMaterialSupplierRelations(): Promise<
 > {
   const s = await factoryScope();
   if (!s) return [];
-  const { data, error } = await s.c.from("material_supplier_relations").select("*");
-  if (error) throw new Error(error.message);
-  return (data as Row[] | null)?.map(mapMaterialSupplierRelation) ?? [];
+  const data = await selectAllRows((from, to) =>
+    s.c
+      .from("material_supplier_relations")
+      .select("*")
+      .order("material_id", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  return data.map(mapMaterialSupplierRelation);
 }
 
 export async function relationsByMaterialId(
@@ -556,13 +609,16 @@ export async function relationsBySupplierId(
 export async function listStockMovements(): Promise<StockMovement[]> {
   const s = await factoryScope();
   if (!s) return [];
-  const { data, error } = await s.c
-    .from("stock_movements")
-    .select("*")
-    .eq("factory_id", s.factoryId)
-    .order("occurred_at", { ascending: false });
-  if (error) throw new Error(error.message);
-  return (data as Row[] | null)?.map(mapStockMovement) ?? [];
+  const data = await selectAllRows((from, to) =>
+    s.c
+      .from("stock_movements")
+      .select("*")
+      .eq("factory_id", s.factoryId)
+      .order("occurred_at", { ascending: false })
+      .order("id", { ascending: false })
+      .range(from, to),
+  );
+  return data.map(mapStockMovement);
 }
 
 export async function getStockMovement(
@@ -598,13 +654,16 @@ export async function filterStockMovements(
 export async function listProducts(): Promise<Product[]> {
   const s = await factoryScope();
   if (!s) return [];
-  const { data, error } = await s.c
-    .from("products")
-    .select("*")
-    .eq("factory_id", s.factoryId)
-    .order("code");
-  if (error) throw new Error(error.message);
-  return (data as Row[] | null)?.map(mapProduct) ?? [];
+  const data = await selectAllRows((from, to) =>
+    s.c
+      .from("products")
+      .select("*")
+      .eq("factory_id", s.factoryId)
+      .order("code", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  return data.map(mapProduct);
 }
 
 export async function getProduct(id: string): Promise<Product | undefined> {
@@ -623,9 +682,15 @@ export async function getProduct(id: string): Promise<Product | undefined> {
 export async function listProductStockItems(): Promise<ProductStockItem[]> {
   const s = await factoryScope();
   if (!s) return [];
-  const { data, error } = await s.c.from("product_stock_items").select("*");
-  if (error) throw new Error(error.message);
-  return (data as Row[] | null)?.map(mapProductStockItem) ?? [];
+  const data = await selectAllRows((from, to) =>
+    s.c
+      .from("product_stock_items")
+      .select("*")
+      .order("product_id", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  return data.map(mapProductStockItem);
 }
 
 export async function getProductStockByProductId(
@@ -638,15 +703,16 @@ export async function getProductStockByProductId(
 export async function listShipments(): Promise<Shipment[]> {
   const s = await factoryScope();
   if (!s) return [];
-  const { data, error } = await s.c
-    .from("shipments")
-    .select("*")
-    .eq("factory_id", s.factoryId)
-    .order("shipped_at", {
-      ascending: false,
-    });
-  if (error) throw new Error(error.message);
-  return (data as Row[] | null)?.map(mapShipment) ?? [];
+  const data = await selectAllRows((from, to) =>
+    s.c
+      .from("shipments")
+      .select("*")
+      .eq("factory_id", s.factoryId)
+      .order("shipped_at", { ascending: false })
+      .order("id", { ascending: false })
+      .range(from, to),
+  );
+  return data.map(mapShipment);
 }
 
 export async function getShipment(id: string): Promise<Shipment | undefined> {
@@ -665,12 +731,15 @@ export async function getShipment(id: string): Promise<Shipment | undefined> {
 export async function getShipmentItems(shipmentId: string): Promise<ShipmentItem[]> {
   const s = await factoryScope();
   if (!s) return [];
-  const { data, error } = await s.c
-    .from("shipment_items")
-    .select("*")
-    .eq("shipment_id", shipmentId);
-  if (error) throw new Error(error.message);
-  return (data as Row[] | null)?.map(mapShipmentItem) ?? [];
+  const data = await selectAllRows((from, to) =>
+    s.c
+      .from("shipment_items")
+      .select("*")
+      .eq("shipment_id", shipmentId)
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  return data.map(mapShipmentItem);
 }
 
 export async function filterShipments(f: ReportFilter): Promise<Shipment[]> {
@@ -684,15 +753,16 @@ export async function filterShipments(f: ReportFilter): Promise<Shipment[]> {
 export async function listProductionOrders(): Promise<ProductionOrder[]> {
   const s = await factoryScope();
   if (!s) return [];
-  const { data, error } = await s.c
-    .from("production_orders")
-    .select("*")
-    .eq("factory_id", s.factoryId)
-    .order("scheduled_date", {
-      ascending: false,
-    });
-  if (error) throw new Error(error.message);
-  return (data as Row[] | null)?.map(mapProductionOrder) ?? [];
+  const data = await selectAllRows((from, to) =>
+    s.c
+      .from("production_orders")
+      .select("*")
+      .eq("factory_id", s.factoryId)
+      .order("scheduled_date", { ascending: false })
+      .order("id", { ascending: false })
+      .range(from, to),
+  );
+  return data.map(mapProductionOrder);
 }
 
 export async function getProductionOrder(
@@ -715,12 +785,15 @@ export async function getProductionOrderLines(
 ): Promise<ProductionOrderLine[]> {
   const s = await factoryScope();
   if (!s) return [];
-  const { data, error } = await s.c
-    .from("production_order_lines")
-    .select("*")
-    .eq("production_order_id", orderId);
-  if (error) throw new Error(error.message);
-  return (data as Row[] | null)?.map(mapProductionOrderLine) ?? [];
+  const data = await selectAllRows((from, to) =>
+    s.c
+      .from("production_order_lines")
+      .select("*")
+      .eq("production_order_id", orderId)
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  return data.map(mapProductionOrderLine);
 }
 
 function normPartProductKey(s: string): string {
@@ -812,9 +885,15 @@ export async function filterProductionOrders(
 export async function listProductionOrderLines(): Promise<ProductionOrderLine[]> {
   const s = await factoryScope();
   if (!s) return [];
-  const { data, error } = await s.c.from("production_order_lines").select("*");
-  if (error) throw new Error(error.message);
-  return (data as Row[] | null)?.map(mapProductionOrderLine) ?? [];
+  const data = await selectAllRows((from, to) =>
+    s.c
+      .from("production_order_lines")
+      .select("*")
+      .order("production_order_id", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  return data.map(mapProductionOrderLine);
 }
 
 export async function filterProductionOrderLines(
@@ -833,13 +912,16 @@ export async function filterProductionOrderLines(
 export async function listParts(): Promise<Part[]> {
   const s = await factoryScope();
   if (!s) return [];
-  const { data, error } = await s.c
-    .from("parts")
-    .select("*")
-    .eq("factory_id", s.factoryId)
-    .order("part_code");
-  if (error) throw new Error(error.message);
-  return (data as Row[] | null)?.map(mapPart) ?? [];
+  const data = await selectAllRows((from, to) =>
+    s.c
+      .from("parts")
+      .select("*")
+      .eq("factory_id", s.factoryId)
+      .order("part_code", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  return data.map(mapPart);
 }
 
 /** Fabrikadaki parça → alt parça bağlantıları. */
@@ -852,12 +934,16 @@ export async function listPartChildParts(): Promise<PartChildPart[]> {
   const out: PartChildPart[] = [];
   for (let i = 0; i < ids.length; i += chunk) {
     const slice = ids.slice(i, i + chunk);
-    const { data, error } = await s.c
-      .from("part_child_parts")
-      .select("*")
-      .in("parent_part_id", slice);
-    if (error) throw new Error(error.message);
-    for (const r of (data as Row[] | null) ?? []) {
+    const batch = await selectAllRows((from, to) =>
+      s.c
+        .from("part_child_parts")
+        .select("*")
+        .in("parent_part_id", slice)
+        .order("parent_part_id", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to),
+    );
+    for (const r of batch) {
       out.push(mapPartChildPart(r));
     }
   }
@@ -876,12 +962,16 @@ export async function listPartMaterialRequirements(): Promise<
   const out: PartMaterialRequirement[] = [];
   for (let i = 0; i < ids.length; i += chunk) {
     const slice = ids.slice(i, i + chunk);
-    const { data, error } = await s.c
-      .from("part_material_requirements")
-      .select("*")
-      .in("part_id", slice);
-    if (error) throw new Error(error.message);
-    for (const r of (data as Row[] | null) ?? []) {
+    const batch = await selectAllRows((from, to) =>
+      s.c
+        .from("part_material_requirements")
+        .select("*")
+        .in("part_id", slice)
+        .order("part_id", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to),
+    );
+    for (const r of batch) {
       out.push(mapPartMaterialRequirement(r));
     }
   }
@@ -917,13 +1007,17 @@ export async function getPart(id: string): Promise<Part | undefined> {
 export async function listPartsByBatchId(batchId: string): Promise<Part[]> {
   const s = await factoryScope();
   if (!s) return [];
-  const { data, error } = await s.c
-    .from("parts")
-    .select("*")
-    .eq("import_batch_id", batchId)
-    .eq("factory_id", s.factoryId);
-  if (error) throw new Error(error.message);
-  return (data as Row[] | null)?.map(mapPart) ?? [];
+  const data = await selectAllRows((from, to) =>
+    s.c
+      .from("parts")
+      .select("*")
+      .eq("import_batch_id", batchId)
+      .eq("factory_id", s.factoryId)
+      .order("part_code", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  return data.map(mapPart);
 }
 
 export async function listPartsByAssemblyGroupId(
@@ -931,13 +1025,17 @@ export async function listPartsByAssemblyGroupId(
 ): Promise<Part[]> {
   const s = await factoryScope();
   if (!s) return [];
-  const { data, error } = await s.c
-    .from("parts")
-    .select("*")
-    .eq("assembly_group_id", assemblyGroupId)
-    .eq("factory_id", s.factoryId);
-  if (error) throw new Error(error.message);
-  return (data as Row[] | null)?.map(mapPart) ?? [];
+  const data = await selectAllRows((from, to) =>
+    s.c
+      .from("parts")
+      .select("*")
+      .eq("assembly_group_id", assemblyGroupId)
+      .eq("factory_id", s.factoryId)
+      .order("part_code", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  return data.map(mapPart);
 }
 
 export async function listPartRouteStepsForPartIds(
@@ -945,26 +1043,32 @@ export async function listPartRouteStepsForPartIds(
 ): Promise<PartRouteStep[]> {
   const s = await factoryScope();
   if (!s || partIds.length === 0) return [];
-  const { data, error } = await s.c
-    .from("part_route_steps")
-    .select("*")
-    .in("part_id", partIds)
-    .order("part_id", { ascending: true })
-    .order("step_no", { ascending: true });
-  if (error) throw new Error(error.message);
-  return (data as Row[] | null)?.map(mapPartRouteStep) ?? [];
+  const data = await selectAllRows((from, to) =>
+    s.c
+      .from("part_route_steps")
+      .select("*")
+      .in("part_id", partIds)
+      .order("part_id", { ascending: true })
+      .order("step_no", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  return data.map(mapPartRouteStep);
 }
 
 export async function listAssemblyGroups(): Promise<AssemblyGroup[]> {
   const s = await factoryScope();
   if (!s) return [];
-  const { data, error } = await s.c
-    .from("assembly_groups")
-    .select("*")
-    .eq("factory_id", s.factoryId)
-    .order("code");
-  if (error) throw new Error(error.message);
-  return (data as Row[] | null)?.map(mapAssemblyGroup) ?? [];
+  const data = await selectAllRows((from, to) =>
+    s.c
+      .from("assembly_groups")
+      .select("*")
+      .eq("factory_id", s.factoryId)
+      .order("code", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  return data.map(mapAssemblyGroup);
 }
 
 export async function getAssemblyGroup(
@@ -987,21 +1091,31 @@ export async function listAssemblyGroupsByBatchId(
 ): Promise<AssemblyGroup[]> {
   const s = await factoryScope();
   if (!s) return [];
-  const { data, error } = await s.c
-    .from("assembly_groups")
-    .select("*")
-    .eq("import_batch_id", batchId)
-    .eq("factory_id", s.factoryId);
-  if (error) throw new Error(error.message);
-  return (data as Row[] | null)?.map(mapAssemblyGroup) ?? [];
+  const data = await selectAllRows((from, to) =>
+    s.c
+      .from("assembly_groups")
+      .select("*")
+      .eq("import_batch_id", batchId)
+      .eq("factory_id", s.factoryId)
+      .order("code", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  return data.map(mapAssemblyGroup);
 }
 
 export async function listOperationAssignments(): Promise<OperationAssignment[]> {
   const s = await factoryScope();
   if (!s) return [];
-  const { data, error } = await s.c.from("operation_assignments").select("*");
-  if (error) throw new Error(error.message);
-  return (data as Row[] | null)?.map(mapOperationAssignment) ?? [];
+  const data = await selectAllRows((from, to) =>
+    s.c
+      .from("operation_assignments")
+      .select("*")
+      .order("part_id", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  return data.map(mapOperationAssignment);
 }
 
 export async function listOperationAssignmentsByPartId(
@@ -1014,9 +1128,15 @@ export async function listOperationAssignmentsByPartId(
 export async function listShipmentItems(): Promise<ShipmentItem[]> {
   const s = await factoryScope();
   if (!s) return [];
-  const { data, error } = await s.c.from("shipment_items").select("*");
-  if (error) throw new Error(error.message);
-  return (data as Row[] | null)?.map(mapShipmentItem) ?? [];
+  const data = await selectAllRows((from, to) =>
+    s.c
+      .from("shipment_items")
+      .select("*")
+      .order("shipment_id", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  return data.map(mapShipmentItem);
 }
 
 export async function filterShipmentItems(f: ReportFilter): Promise<ShipmentItem[]> {
