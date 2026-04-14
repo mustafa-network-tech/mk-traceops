@@ -81,6 +81,21 @@ function PrimaryCta({ className }: { className?: string }) {
   );
 }
 
+function PanelInspectCta({ className }: { className?: string }) {
+  return (
+    <a
+      href={EXTERNAL_APP_URL}
+      className={cn(
+        buttonVariants({ variant: "outline", size: "lg" }),
+        "rounded-xl border-slate-300 bg-white/80 text-slate-800 hover:bg-white",
+        className,
+      )}
+    >
+      Paneli İncele
+    </a>
+  );
+}
+
 export function LandingPage() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
@@ -153,15 +168,7 @@ export function LandingPage() {
             </p>
             <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
               <PrimaryCta />
-              <a
-                href={EXTERNAL_APP_URL}
-                className={cn(
-                  buttonVariants({ variant: "outline", size: "lg" }),
-                  "rounded-xl border-slate-300 bg-white/80 text-slate-800 hover:bg-white",
-                )}
-              >
-                Paneli İncele
-              </a>
+              <PanelInspectCta />
             </div>
           </div>
         </section>
@@ -250,7 +257,7 @@ export function LandingPage() {
               onayından sonra panele giriş yaparak üretim, depo, sevkiyat ve diğer modülleri
               kendi verilerinizle kullanabilirsiniz.
             </p>
-            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
+            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row sm:flex-wrap sm:gap-4">
               <a
                 href={EXTERNAL_APP_URL}
                 className={cn(
@@ -260,6 +267,7 @@ export function LandingPage() {
               >
                 Kayıt ol
               </a>
+              <PanelInspectCta className="border-violet-300 bg-white/90 text-slate-900 hover:bg-white" />
               <PrimaryCta />
             </div>
           </div>
