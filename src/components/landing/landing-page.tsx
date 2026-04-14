@@ -12,6 +12,9 @@ import {
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+/** Tanıtım sayfasındaki giriş / kayıt CTA’ları harici uygulamaya gider. */
+const EXTERNAL_APP_URL = "https://mustafaoner.net";
+
 const systemCards = [
   {
     icon: FileSpreadsheet,
@@ -65,8 +68,8 @@ const moduleCards = [
 
 function PrimaryCta({ className }: { className?: string }) {
   return (
-    <Link
-      href="/giris"
+    <a
+      href={EXTERNAL_APP_URL}
       className={cn(
         buttonVariants({ size: "lg" }),
         "rounded-xl bg-violet-600 text-white shadow-md shadow-violet-600/20 hover:bg-violet-700",
@@ -74,7 +77,7 @@ function PrimaryCta({ className }: { className?: string }) {
       )}
     >
       Sisteme Giriş Yap
-    </Link>
+    </a>
   );
 }
 
@@ -111,15 +114,15 @@ export function LandingPage() {
             >
               MK TraceOps nedir
             </Link>
-            <Link
-              href="/giris"
+            <a
+              href={EXTERNAL_APP_URL}
               className={cn(
                 buttonVariants({ size: "sm" }),
                 "rounded-lg bg-violet-600 px-4 text-white shadow-sm hover:bg-violet-700",
               )}
             >
               Giriş Yap
-            </Link>
+            </a>
           </nav>
         </div>
       </header>
@@ -151,7 +154,7 @@ export function LandingPage() {
             <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
               <PrimaryCta />
               <a
-                href="#sistem"
+                href={EXTERNAL_APP_URL}
                 className={cn(
                   buttonVariants({ variant: "outline", size: "lg" }),
                   "rounded-xl border-slate-300 bg-white/80 text-slate-800 hover:bg-white",
@@ -248,15 +251,15 @@ export function LandingPage() {
               kendi verilerinizle kullanabilirsiniz.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
-              <Link
-                href="/kayit"
+              <a
+                href={EXTERNAL_APP_URL}
                 className={cn(
                   buttonVariants({ variant: "outline", size: "lg" }),
                   "rounded-xl border-violet-300 bg-white/90 text-slate-900 hover:bg-white",
                 )}
               >
                 Kayıt ol
-              </Link>
+              </a>
               <PrimaryCta />
             </div>
           </div>
