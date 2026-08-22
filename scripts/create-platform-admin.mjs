@@ -6,7 +6,8 @@ import { spawnSync } from "node:child_process";
 import { createInterface } from "node:readline/promises";
 import { pathToFileURL } from "node:url";
 
-const ITERATIONS = 210_000;
+// Keep credentials compatible with the Cloudflare Workers Web Crypto runtime.
+const ITERATIONS = 100_000;
 
 export function createPasswordCredential(password) {
   if (password.length < 12) throw new Error("Şifre en az 12 karakter olmalıdır.");
@@ -25,9 +26,22 @@ function sqlValue(value) {
 export function createAdminSql({ id, email, firstName, lastName, credential, now }) {
   return `PRAGMA foreign_keys = ON;
 INSERT INTO profiles (id,factory_id,email,first_name,last_name,phone,role,status,created_at,updated_at)
-VALUES (${sqlValue(id)},NULL,${sqlValue(email)},${sqlValue(firstName)},${sqlValue(lastName)},NULL,'platform_admin','active',${sqlValue(now)},${sqlValue(now)});
+VALUES (${sqlValue(id)},NULL,${sqlValue(email)},${sqlValue(firstName)},${sqlValue(lastName)},NULL,'platform_admin','active',${sqlValue(now)},${sqlValue(now)})
+ON CONFLICT(email) DO UPDATE SET
+  first_name=excluded.first_name,
+  last_name=excluded.last_name,
+  role='platform_admin',
+  status='active',
+  updated_at=excluded.updated_at;
 INSERT INTO auth_credentials (profile_id,email,password_hash,password_salt,iterations,created_at,updated_at)
-VALUES (${sqlValue(id)},${sqlValue(email)},${sqlValue(credential.hash)},${sqlValue(credential.salt)},${credential.iterations},${sqlValue(now)},${sqlValue(now)});
+SELECT id,${sqlValue(email)},${sqlValue(credential.hash)},${sqlValue(credential.salt)},${credential.iterations},${sqlValue(now)},${sqlValue(now)}
+FROM profiles WHERE email=${sqlValue(email)}
+ON CONFLICT(profile_id) DO UPDATE SET
+  email=excluded.email,
+  password_hash=excluded.password_hash,
+  password_salt=excluded.password_salt,
+  iterations=excluded.iterations,
+  updated_at=excluded.updated_at;
 `;
 }
 

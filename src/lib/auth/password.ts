@@ -1,5 +1,6 @@
 import "server-only";
-const ITERATIONS = 210_000;
+// Cloudflare Workers Web Crypto currently rejects PBKDF2 counts above 100,000.
+const ITERATIONS = 100_000;
 const encoder = new TextEncoder();
 function bytesToBase64(bytes: Uint8Array): string { let value = ""; for (const byte of bytes) value += String.fromCharCode(byte); return btoa(value); }
 function base64ToBytes(value: string): Uint8Array { const raw = atob(value); return Uint8Array.from(raw, (char) => char.charCodeAt(0)); }
