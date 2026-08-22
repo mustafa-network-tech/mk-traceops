@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { createInterface } from "node:readline/promises";
+import { pathToFileURL } from "node:url";
 
 const ITERATIONS = 210_000;
 
@@ -81,6 +82,6 @@ async function main() {
   }
 }
 
-if (import.meta.url === new URL(process.argv[1], "file:").href) {
+if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
   main().catch((error) => { process.stderr.write(`Hata: ${error instanceof Error ? error.message : String(error)}\n`); process.exitCode = 1; });
 }
