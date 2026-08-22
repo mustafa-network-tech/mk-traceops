@@ -120,11 +120,11 @@ CREATE TABLE part_child_parts (
 );
 CREATE TRIGGER part_child_parts_no_cycle BEFORE INSERT ON part_child_parts
 BEGIN
-  SELECT CASE WHEN EXISTS(
+  SELECT (CASE WHEN EXISTS(
     WITH RECURSIVE descendants(id) AS (
       SELECT NEW.child_part_id UNION SELECT p.child_part_id FROM part_child_parts p JOIN descendants d ON p.parent_part_id=d.id
     ) SELECT 1 FROM descendants WHERE id=NEW.parent_part_id
-  ) THEN RAISE(ABORT,'BOM cycle detected') END;
+  ) THEN RAISE(ABORT,'BOM cycle detected') END);
 END;
 
 CREATE TABLE operation_assignments (

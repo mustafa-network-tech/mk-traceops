@@ -12,8 +12,8 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "mk-traceops",
-      "database_id": "REPLACE_WITH_D1_DATABASE_ID",
+      "database_name": "mk-traceops-db",
+      "database_id": "2fab22c0-6246-4e1f-b073-360136174303",
       "migrations_dir": "d1/migrations"
     }
   ]
