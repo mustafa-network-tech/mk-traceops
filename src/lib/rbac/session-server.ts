@@ -1,8 +1,7 @@
 import { cookies } from "next/headers";
 
-import { getSessionContextByProfileId } from "@/lib/data/rbac-supabase";
-import { isRbacProfileCookieAllowed, isSupabaseConfigured } from "@/lib/supabase/env";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getDatabase } from "@/lib/d1/database";
+import { RbacSessionRepository } from "@/lib/d1/repositories/rbac-session";
 import type { RbacSessionContext } from "@/lib/rbac/types";
 import { hasPermission } from "@/lib/rbac/helpers";
 import { requiredPermissionForPath } from "@/lib/rbac/route-access";
@@ -21,25 +20,9 @@ export async function getRbacCookieProfileId(): Promise<string | null> {
 }
 
 export async function getRbacSession(): Promise<RbacSessionContext | null> {
-  if (!isSupabaseConfigured()) return null;
-
-  let profileId: string | null = null;
-  try {
-    const supabase = await createSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (user?.id) profileId = user.id;
-  } catch {
-    /* oturum yok */
-  }
-
-  if (!profileId && isRbacProfileCookieAllowed()) {
-    profileId = await getRbacCookieProfileId();
-  }
-
+  const profileId = await getRbacCookieProfileId();
   if (!profileId) return null;
-  return getSessionContextByProfileId(profileId);
+  return new RbacSessionRepository(getDatabase()).findContext(profileId);
 }
 
 export async function userCanAccessPanelPath(

@@ -3,8 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 
-import { getProfileById } from "@/lib/data/rbac-supabase";
-import { isRbacProfileCookieAllowed } from "@/lib/supabase/env";
+import { getDatabase } from "@/lib/d1/database";
+import { RbacSessionRepository } from "@/lib/d1/repositories/rbac-session";
+import { isRbacProfileCookieAllowed } from "@/lib/rbac/profile-cookie";
 import {
   RBAC_PROFILE_COOKIE,
   RBAC_USER_COOKIE,
@@ -20,8 +21,8 @@ export async function setRbacSessionUserAction(
         "Profil çerezi devre dışı. RBAC_ALLOW_PROFILE_COOKIE=true ile açın veya Supabase ile giriş yapın.",
     };
   }
-  const u = await getProfileById(userId);
-  if (!u) return { ok: false, error: "Profil bulunamadı." };
+  const context = await new RbacSessionRepository(getDatabase()).findContext(userId);
+  if (!context?.user) return { ok: false, error: "Profil bulunamadı." };
   const jar = await cookies();
   jar.set(RBAC_PROFILE_COOKIE, userId, {
     path: "/",

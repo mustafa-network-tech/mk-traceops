@@ -1,6 +1,7 @@
-import { listProfilesForSwitcher } from "@/lib/data/rbac-supabase";
+import { getDatabase } from "@/lib/d1/database";
+import { RbacSessionRepository } from "@/lib/d1/repositories/rbac-session";
 import type { ActorOption } from "@/lib/rbac/types";
-import { isRbacProfileCookieAllowed } from "@/lib/supabase/env";
+import { isRbacProfileCookieAllowed } from "@/lib/rbac/profile-cookie";
 
 /**
  * Oturum seçici: yalnızca RBAC_ALLOW_PROFILE_COOKIE açıkken doldurulur.
@@ -8,13 +9,5 @@ import { isRbacProfileCookieAllowed } from "@/lib/supabase/env";
  */
 export async function loadActorSwitcherOptions(): Promise<ActorOption[]> {
   if (!isRbacProfileCookieAllowed()) return [];
-  const profiles = await listProfilesForSwitcher();
-  return profiles.map((p) => ({
-    id: p.id,
-    role: p.role,
-    label:
-      p.role === "PLATFORM_ADMIN"
-        ? `${p.firstName} ${p.lastName}`
-        : `${p.firstName} ${p.lastName} · ${p.email}`,
-  }));
+  return new RbacSessionRepository(getDatabase()).listActorOptions();
 }

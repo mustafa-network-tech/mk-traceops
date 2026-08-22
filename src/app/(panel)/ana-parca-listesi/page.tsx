@@ -1,25 +1,12 @@
 import { PartChildLinksPanel } from "@/components/features/part-child-links-panel";
 import { PartListWithFilters } from "@/components/features/part-list-with-filters";
-import {
-  listAssemblyGroups,
-  listCompanies,
-  listMaterials,
-  listPartChildParts,
-  listParts,
-} from "@/lib/data/supabase-data";
+import { getPartsPageData } from "@/lib/services/parts-page-service";
 import { hasPermission } from "@/lib/rbac/helpers";
 import { getRbacSession } from "@/lib/rbac/session-server";
 
 export default async function AnaParcaListesiPage() {
-  const [ctx, parts, materials, companies, assemblies, childLinks] =
-    await Promise.all([
-      getRbacSession(),
-      listParts(),
-      listMaterials(),
-      listCompanies(),
-      listAssemblyGroups(),
-      listPartChildParts(),
-    ]);
+  const ctx = await getRbacSession();
+  const { parts, materials, companies, assemblies, childLinks } = await getPartsPageData(ctx);
 
   const canEditPartBom = hasPermission(ctx, "parts_materials", "update");
 

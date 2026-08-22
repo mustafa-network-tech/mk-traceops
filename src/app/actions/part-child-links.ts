@@ -3,8 +3,8 @@
 import { revalidatePath } from "next/cache";
 
 import { requirePermission } from "@/lib/rbac/action-gate";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { getDatabase } from "@/lib/d1/database";
+import { PartsOverviewRepository } from "@/lib/d1/repositories/parts-overview";
 
 export type PartChildLinkActionResult =
   | { ok: true }
@@ -15,10 +15,6 @@ export async function addPartChildLinkAction(input: {
   childPartId: string;
   quantityPerParent: number;
 }): Promise<PartChildLinkActionResult> {
-  if (!isSupabaseConfigured()) {
-    return { ok: false, error: "Supabase yapılandırılmamış." };
-  }
-
   const gate = await requirePermission("parts_materials", "update");
   if (!gate.ok) {
     return { ok: false, error: gate.error };
@@ -38,19 +34,16 @@ export async function addPartChildLinkAction(input: {
     return { ok: false, error: "Birim başına miktar pozitif olmalıdır." };
   }
 
-  const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.from("part_child_parts").insert({
-    parent_part_id: parentPartId,
-    child_part_id: childPartId,
-    quantity_per_parent: q,
-    unit: "adet",
-  });
-
-  if (error) {
-    if (/duplicate key|unique constraint/i.test(error.message)) {
+  const factoryId = gate.ctx.user.factoryId!;
+  const repository = new PartsOverviewRepository(getDatabase(), { factoryId, actorId: gate.ctx.user.id });
+  try {
+    await repository.addChildLink(parentPartId, childPartId, q);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Bağlantı eklenemedi.";
+    if (/unique|constraint failed/i.test(message)) {
       return { ok: false, error: "Bu üst–alt parça bağlantısı zaten var." };
     }
-    return { ok: false, error: error.message };
+    return { ok: false, error: message };
   }
 
   revalidatePath("/ana-parca-listesi");
@@ -60,10 +53,6 @@ export async function addPartChildLinkAction(input: {
 export async function deletePartChildLinkAction(
   linkId: string,
 ): Promise<PartChildLinkActionResult> {
-  if (!isSupabaseConfigured()) {
-    return { ok: false, error: "Supabase yapılandırılmamış." };
-  }
-
   const gate = await requirePermission("parts_materials", "update");
   if (!gate.ok) {
     return { ok: false, error: gate.error };
@@ -74,12 +63,9 @@ export async function deletePartChildLinkAction(
     return { ok: false, error: "Geçersiz kayıt." };
   }
 
-  const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.from("part_child_parts").delete().eq("id", id);
-
-  if (error) {
-    return { ok: false, error: error.message };
-  }
+  const factoryId = gate.ctx.user.factoryId!;
+  const repository = new PartsOverviewRepository(getDatabase(), { factoryId, actorId: gate.ctx.user.id });
+  if (!(await repository.deleteChildLink(id))) return { ok: false, error: "Kayıt bulunamadı veya bu fabrikaya ait değil." };
 
   revalidatePath("/ana-parca-listesi");
   return { ok: true };
