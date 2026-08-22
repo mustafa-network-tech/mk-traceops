@@ -12,7 +12,7 @@ import {
 import {
   listAllFactoryRequests,
   listFactories,
-} from "@/lib/data/rbac-supabase";
+} from "@/lib/data/rbac-data";
 
 export const dynamic = "force-dynamic";
 

@@ -18,7 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { listAllFactoryRequests } from "@/lib/data/rbac-supabase";
+import { listAllFactoryRequests } from "@/lib/data/rbac-data";
 import { formatDateTime } from "@/lib/format";
 
 export const dynamic = "force-dynamic";

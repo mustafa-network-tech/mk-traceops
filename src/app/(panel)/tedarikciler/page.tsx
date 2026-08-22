@@ -13,7 +13,7 @@ import {
 import {
   listMaterialSupplierRelations,
   listSuppliers,
-} from "@/lib/data/supabase-data";
+} from "@/lib/data/d1-data";
 
 export default async function TedarikcilerPage() {
   const [suppliers, rels] = await Promise.all([

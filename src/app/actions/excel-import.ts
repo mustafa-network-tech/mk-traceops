@@ -3,7 +3,6 @@
 import { persistExcelImport } from "@/lib/data/import-persist";
 import { requirePermission } from "@/lib/rbac/action-gate";
 import { EXCEL_MAX_BYTES, parseProductionExcelBuffer } from "@/lib/services/excelParse";
-import { isSupabaseConfigured } from "@/lib/supabase/env";
 
 export type ExcelImportActionResult =
   | { ok: true; batchId: string }
@@ -12,14 +11,6 @@ export type ExcelImportActionResult =
 export async function uploadExcelImportAction(
   formData: FormData,
 ): Promise<ExcelImportActionResult> {
-  if (!isSupabaseConfigured()) {
-    return {
-      ok: false,
-      error:
-        "Supabase yapılandırılmamış. .env.local içinde NEXT_PUBLIC_SUPABASE_URL ve ANON_KEY tanımlayın.",
-    };
-  }
-
   const gate = await requirePermission("excel_import", "create");
   if (!gate.ok) {
     return { ok: false, error: gate.error };

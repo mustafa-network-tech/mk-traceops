@@ -7,7 +7,7 @@ import {
   listProductionOrders,
   listStockMovements,
   listSuppliers,
-} from "@/lib/data/supabase-data";
+} from "@/lib/data/d1-data";
 import { hasPermission } from "@/lib/rbac/helpers";
 import { requirePanelModule } from "@/lib/rbac/require-panel-module";
 import { getRbacSession } from "@/lib/rbac/session-server";

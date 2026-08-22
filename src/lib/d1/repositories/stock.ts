@@ -4,6 +4,7 @@ import { TenantRepository, type TenantContext } from "../tenant-repository";
 type MovementInput = {
   materialId: string; locationId: string; type: "giriş" | "çıkış" | "üretimde_kullanım" | "iade" | "fire" | "manuel_düzeltme";
   quantity: number; unit: string; occurredAt?: string; note?: string | null;
+  productionOrderId?: string | null; assemblyGroupId?: string | null; projectReference?: string | null; supplierId?: string | null;
 };
 
 export class StockRepository extends TenantRepository {
@@ -29,10 +30,12 @@ export class StockRepository extends TenantRepository {
       this.tenantStatement("UPDATE materials SET current_stock=?2,updated_at=?3 WHERE factory_id=?1 AND id=?4", next, now, input.materialId),
       this.tenantStatement(
         `INSERT INTO stock_movements
-         (factory_id,id,material_id,type,quantity,unit,occurred_at,location_id,note,created_at)
-         VALUES (?,?,?,?,?,?,?,?,?,?)`,
+         (factory_id,id,material_id,type,quantity,unit,occurred_at,location_id,production_order_id,assembly_group_id,project_reference,note,supplier_id,created_at)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
         id, input.materialId, input.type, input.quantity, input.unit,
-        input.occurredAt ?? now, input.locationId, input.note ?? null, now,
+        input.occurredAt ?? now, input.locationId, input.productionOrderId ?? null,
+        input.assemblyGroupId ?? null, input.projectReference ?? null, input.note ?? null,
+        input.supplierId ?? null, now,
       ),
     ]);
     return id;

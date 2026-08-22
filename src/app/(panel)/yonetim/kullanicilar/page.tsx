@@ -4,7 +4,7 @@ import { CompanyUsersPanel } from "@/components/rbac/company-users-panel";
 import {
   listInvitationsInFactory,
   listUsersInFactory,
-} from "@/lib/data/rbac-supabase";
+} from "@/lib/data/rbac-data";
 import { getRbacSession } from "@/lib/rbac/session-server";
 import { isCompanyAdmin } from "@/lib/rbac/helpers";
 import { redirect } from "next/navigation";
@@ -26,7 +26,7 @@ export default async function YonetimKullanicilarPage() {
     <div>
       <PageHeader
         title="Kullanıcılar ve davetler"
-        description="Fabrika içi roller, davetler ve hesap durumu. (Supabase Auth ile e-posta daveti ileride bağlanacak.)"
+        description="Fabrika içi roller, D1 davetleri ve hesap durumu."
         breadcrumbs={[
           { label: "Kokpit", href: "/kokpit" },
           { label: "Kullanıcı yönetimi" },

@@ -7,7 +7,7 @@ import {
   rejectFactoryRequest,
   updateFactoryPackage,
   updateFactoryStatus,
-} from "@/lib/data/rbac-supabase";
+} from "@/lib/data/rbac-data";
 import { getRbacSession } from "@/lib/rbac/session-server";
 import { canApproveFactory, isPlatformAdmin } from "@/lib/rbac/helpers";
 import type { FactoryStatus } from "@/lib/rbac/types";

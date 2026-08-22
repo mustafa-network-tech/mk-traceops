@@ -18,7 +18,7 @@ import {
   listDepartments,
   listProducts,
   listProductionOrders,
-} from "@/lib/data/supabase-data";
+} from "@/lib/data/d1-data";
 import { formatDate } from "@/lib/format";
 import { hasPermission } from "@/lib/rbac/helpers";
 import { requirePanelModule } from "@/lib/rbac/require-panel-module";

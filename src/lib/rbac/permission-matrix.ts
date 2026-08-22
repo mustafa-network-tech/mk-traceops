@@ -1,5 +1,5 @@
 /**
- * Çalışma zamanı izinleri Supabase `role_permissions` + `permissions` tablolarından yüklenir.
+ * Çalışma zamanı izinleri D1 `role_permissions` + `permissions` tablolarından yüklenir.
  * Bu matris yalnızca dokümantasyon ve migration ile hizalama içindir.
  */
 import type { RoleKey } from "@/lib/rbac/types";

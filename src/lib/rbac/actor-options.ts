@@ -5,7 +5,7 @@ import { isRbacProfileCookieAllowed } from "@/lib/rbac/profile-cookie";
 
 /**
  * Oturum seçici: yalnızca RBAC_ALLOW_PROFILE_COOKIE açıkken doldurulur.
- * Canlıda kullanıcılar yalnızca Supabase Auth ile girer.
+ * Canlıda kullanıcılar D1 kimlik doğrulamasıyla girer.
  */
 export async function loadActorSwitcherOptions(): Promise<ActorOption[]> {
   if (!isRbacProfileCookieAllowed()) return [];

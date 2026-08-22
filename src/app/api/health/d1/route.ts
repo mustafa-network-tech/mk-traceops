@@ -1,0 +1,1 @@
+import{getDatabase}from"@/lib/d1/database";export async function GET(){try{const row=await getDatabase().prepare("SELECT 1 AS ok").first<{ok:number}>();return Response.json({ok:row?.ok===1,database:"D1"});}catch(error){return Response.json({ok:false,error:error instanceof Error?error.message:"D1 bağlantı hatası."},{status:503});}}

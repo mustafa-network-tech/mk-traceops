@@ -13,7 +13,7 @@ import {
   listPlatformStockMovements,
 } from "@/lib/data/platform-operational";
 import { formatDate, formatDateTime } from "@/lib/format";
-import { isSupabaseAdminConfigured } from "@/lib/supabase/admin";
+import { isD1Configured } from "@/lib/d1/status";
 
 export const dynamic = "force-dynamic";
 
@@ -36,18 +36,16 @@ export default async function PlatformFabrikaHareketleriPage() {
     <div className="space-y-10">
       <PageHeader
         title="Fabrika hareketleri (izleme)"
-        description="Tüm kiracılar için son malzeme stok hareketleri ve üretim emri özeti. Liste boşsa veya veri varken görünmüyorsa sunucuda SUPABASE_SERVICE_ROLE_KEY tanımlayın."
+        description="Tüm kiracılar için D1 üzerindeki son stok hareketleri ve üretim emri özeti."
         breadcrumbs={[
           { label: "Platform", href: "/platform" },
           { label: "Fabrika hareketleri" },
         ]}
       />
 
-      {!isSupabaseAdminConfigured() ? (
+      {!isD1Configured() ? (
         <p className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
-          Üretim ortamında platform izleme için{" "}
-          <code className="rounded bg-white px-1 text-xs">SUPABASE_SERVICE_ROLE_KEY</code> önerilir;
-          tanımlı değil — RLS nedeniyle listeler boş kalabilir.
+          Üretim ortamında <code className="rounded bg-white px-1 text-xs">DB</code> binding tanımlı değil.
         </p>
       ) : null}
 

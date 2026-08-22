@@ -20,7 +20,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatNumber } from "@/lib/format";
-import type { ProductionOrderBomPreviewRow } from "@/lib/data/supabase-data";
+import type { ProductionOrderBomPreviewRow } from "@/lib/data/d1-data";
 
 type Preview =
   | { ok: true; rows: ProductionOrderBomPreviewRow[] }

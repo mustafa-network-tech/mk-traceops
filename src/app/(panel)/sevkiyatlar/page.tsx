@@ -15,7 +15,7 @@ import {
   listProducts,
   listShipmentItems,
   listShipments,
-} from "@/lib/data/supabase-data";
+} from "@/lib/data/d1-data";
 import { formatDateTime } from "@/lib/format";
 
 export default async function SevkiyatlarPage() {

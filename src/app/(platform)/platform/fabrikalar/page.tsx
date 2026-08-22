@@ -13,9 +13,9 @@ import {
 import {
   getSubscriptionForFactory,
   listFactories,
-} from "@/lib/data/rbac-supabase";
+} from "@/lib/data/rbac-data";
 import { formatDateTime } from "@/lib/format";
-import { isSupabaseAdminConfigured } from "@/lib/supabase/admin";
+import { isD1Configured } from "@/lib/d1/status";
 
 const STATUS_TR: Record<string, string> = {
   pending: "Beklemede",
@@ -72,11 +72,11 @@ export default async function FabrikalarPage() {
                     Veritabanında <code className="rounded bg-slate-100 px-1 text-xs">factories</code>{" "}
                     satırı yoksa önce fabrika onayı / kayıt akışını tamamlayın. Liste RLS veya oturum
                     yüzünden boşsa, dağıtım ortamında sunucu env&apos;ine{" "}
-                    <code className="rounded bg-slate-100 px-1 text-xs">SUPABASE_SERVICE_ROLE_KEY</code>{" "}
-                    ekleyin (platform okumaları böylece RLS&apos;yi aşar).
-                    {!isSupabaseAdminConfigured() ? (
+                    <code className="rounded bg-slate-100 px-1 text-xs">DB</code>{" "}
+                    binding&apos;inin Cloudflare ortamında tanımlı olduğunu doğrulayın.
+                    {!isD1Configured() ? (
                       <span className="mt-1 block text-amber-800">
-                        Şu an service role anahtarı tanımlı görünmüyor.
+                        D1 binding tanımlı görünmüyor.
                       </span>
                     ) : null}
                   </p>

@@ -5,7 +5,7 @@ import {
   listMaterialSupplierRelations,
   listMaterialsByType,
   sumPartQuantitiesByMaterialId,
-} from "@/lib/data/supabase-data";
+} from "@/lib/data/d1-data";
 
 export default async function SarfMalzemelerPage() {
   const [materials, categories, rels, demandByMat] = await Promise.all([

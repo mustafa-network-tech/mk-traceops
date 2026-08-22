@@ -17,7 +17,7 @@ import {
   getMaterial,
   getSupplier,
   relationsBySupplierId,
-} from "@/lib/data/supabase-data";
+} from "@/lib/data/d1-data";
 import { formatCurrency, formatDate } from "@/lib/format";
 
 type Props = { params: Promise<{ id: string }> };

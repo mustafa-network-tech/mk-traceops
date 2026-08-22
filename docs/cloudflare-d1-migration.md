@@ -20,7 +20,7 @@
 
 ## Supabase Auth envanteri ve ayrıştırma kararı
 
-Auth halen `src/middleware.ts`, `src/lib/supabase/*`, `src/lib/rbac/session-server.ts`, giriş/kayıt/server action akışları ve Admin API kullanan fabrika/kullanıcı onaylarında aktiftir. Bu bağımlılık veritabanı dönüşümüyle sessizce kaldırılmamıştır. Önerilen hedef Cloudflare Access (kurumsal SSO) veya Workers uyumlu Auth.js + harici OIDC sağlayıcısıdır. Seçim yapılana dek Supabase Auth geçici kimlik sağlayıcısı olarak ayrı bir adaptör sınırında tutulmalı; kullanıcı UUID'si D1 `profiles.id` ile eşlenmelidir.
+Runtime auth D1 `auth_credentials` tablosu, Workers Web Crypto PBKDF2 doğrulaması ve `httpOnly` profil oturum çerezi ile çalışır. Eski Supabase Auth istemcileri, middleware ve ortam değişkenleri runtime’dan kaldırılmıştır.
 
 Supabase Storage kullanımı tespit edilmedi. PostgreSQL array/serial/identity kullanımı tespit edilmedi.
 

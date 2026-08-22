@@ -14,7 +14,7 @@ import {
   listPlatformProductionOrders,
   listPlatformStockMovements,
 } from "@/lib/data/platform-operational";
-import { listFactories } from "@/lib/data/rbac-supabase";
+import { listFactories } from "@/lib/data/rbac-data";
 
 export const dynamic = "force-dynamic";
 

@@ -18,7 +18,7 @@ import {
   listDepartments,
   listLocations,
   listUsers,
-} from "@/lib/data/supabase-data";
+} from "@/lib/data/d1-data";
 import { hasPermission } from "@/lib/rbac/helpers";
 import { getRbacSession } from "@/lib/rbac/session-server";
 
@@ -38,7 +38,7 @@ export default async function AyarlarPage() {
     <div>
       <PageHeader
         title="Firma / sistem ayarları"
-        description="Şirket, bölüm, depo konumları ve kullanıcı kayıtları (Supabase public.users)."
+        description="Şirket, bölüm, depo konumları ve D1 kullanıcı kayıtları."
         breadcrumbs={[
           { label: "Kokpit", href: "/kokpit" },
           { label: "Ayarlar" },

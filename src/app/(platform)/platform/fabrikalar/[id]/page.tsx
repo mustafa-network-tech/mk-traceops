@@ -13,7 +13,7 @@ import {
 import {
   getFactoryById,
   getSubscriptionForFactory,
-} from "@/lib/data/rbac-supabase";
+} from "@/lib/data/rbac-data";
 import { formatDateTime } from "@/lib/format";
 
 type Props = { params: Promise<{ id: string }> };

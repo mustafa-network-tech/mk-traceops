@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { getImportBatchById } from "@/lib/data/import-queries";
-import { listAssemblyGroups } from "@/lib/data/supabase-data";
+import { listAssemblyGroups } from "@/lib/data/d1-data";
 import type { ImportBatch } from "@/lib/types/models";
 
 export const dynamic = "force-dynamic";

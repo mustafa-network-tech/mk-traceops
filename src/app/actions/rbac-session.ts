@@ -18,7 +18,7 @@ export async function setRbacSessionUserAction(
     return {
       ok: false,
       error:
-        "Profil çerezi devre dışı. RBAC_ALLOW_PROFILE_COOKIE=true ile açın veya Supabase ile giriş yapın.",
+        "Profil çerezi devre dışı. RBAC_ALLOW_PROFILE_COOKIE=true ile açın.",
     };
   }
   const context = await new RbacSessionRepository(getDatabase()).findContext(userId);

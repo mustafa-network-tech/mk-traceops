@@ -12,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { listProducts } from "@/lib/data/supabase-data";
+import { listProducts } from "@/lib/data/d1-data";
 
 export default async function UrunKartlariPage() {
   const products = await listProducts();

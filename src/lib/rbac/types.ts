@@ -67,7 +67,7 @@ export interface Invitation {
   status: InvitationStatus;
   invitedByUserId: string;
   createdAt: string;
-  /** İleride Supabase magic link / token ile doldurulacak. */
+  /** Davet kabulü için tek kullanımlık değer. */
   token: string;
 }
 

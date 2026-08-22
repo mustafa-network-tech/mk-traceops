@@ -7,7 +7,7 @@ import {
   listMaterials,
   listProducts,
   listSuppliers,
-} from "@/lib/data/supabase-data";
+} from "@/lib/data/d1-data";
 
 export default async function RaporlamaPage() {
   await requirePanelModule("reports", "read");

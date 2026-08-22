@@ -11,7 +11,7 @@ import {
   listShipments,
   listStockMovements,
   listSuppliers,
-} from "@/lib/data/supabase-data";
+} from "@/lib/data/d1-data";
 import type { DashboardMetrics, StockMovement } from "@/lib/types/models";
 
 function startOfMonthIso() {

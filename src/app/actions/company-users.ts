@@ -9,7 +9,7 @@ import {
   listInvitationsInFactory,
   setUserActiveFlag,
   updateUserRoleInFactory,
-} from "@/lib/data/rbac-supabase";
+} from "@/lib/data/rbac-data";
 import {
   canAssignRoles,
   canInviteUsers,

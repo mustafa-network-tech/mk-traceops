@@ -1,7 +1,7 @@
 import { getOperationalFactoryId } from "@/lib/data/operational-context";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { isSupabaseConfigured } from "@/lib/supabase/env";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { getDatabase } from "@/lib/d1/database";
+import { BomRepository } from "@/lib/d1/repositories/bom";
+import { D1ReadRepository } from "@/lib/d1/query-repository";
 import type {
   AssemblyGroup,
   Company,
@@ -27,25 +27,19 @@ import type {
   User,
 } from "@/lib/types/models";
 
-async function client() {
-  if (!isSupabaseConfigured()) return null;
-  return createSupabaseServerClient();
-}
-
 async function factoryScope(): Promise<{
-  c: SupabaseClient;
+  c: D1ReadRepository;
   factoryId: string;
 } | null> {
-  const c = await client();
-  if (!c) return null;
   const factoryId = await getOperationalFactoryId();
   if (!factoryId) return null;
+  const c = new D1ReadRepository(getDatabase(), factoryId);
   return { c, factoryId };
 }
 
 type Row = Record<string, unknown>;
 
-/** PostgREST/Supabase tek yanıtta genelde en fazla 1000 satır döner; tüm listeyi almak için range ile sayfalarız. */
+/** Büyük D1 sonuçlarını sabit boyutlu sayfalarla okur. */
 const LIST_PAGE_SIZE = 1000;
 
 async function selectAllRows(
@@ -328,21 +322,12 @@ export async function explodePartBom(
 ): Promise<ExplodedBomMaterial[]> {
   const s = await factoryScope();
   if (!s || quantity <= 0 || !Number.isFinite(quantity)) return [];
-  const { data, error } = await s.c.rpc("explode_part_bom", {
-    p_root_part_id: partId,
-    p_quantity: quantity,
-  });
-  if (error) throw new Error(error.message);
-  const rows =
-    (data as
-      | Array<{
-          material_id: string;
-          quantity: number | string;
-          unit: string | null;
-        }>
-      | null) ?? [];
+  const rows = await new BomRepository(getDatabase(), {
+    factoryId: s.factoryId,
+    actorId: s.factoryId,
+  }).explode(partId, quantity);
   return rows.map((r) => ({
-    materialId: r.material_id,
+    materialId: r.materialId,
     quantity: Number(r.quantity),
     unit: (r.unit && String(r.unit).trim()) || "adet",
   }));

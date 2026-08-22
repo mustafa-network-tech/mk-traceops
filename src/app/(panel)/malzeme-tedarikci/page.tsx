@@ -12,7 +12,7 @@ import {
   getMaterial,
   listMaterialSupplierRelations,
   listSuppliers,
-} from "@/lib/data/supabase-data";
+} from "@/lib/data/d1-data";
 import { formatCurrency, formatDate } from "@/lib/format";
 
 type Props = {

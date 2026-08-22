@@ -20,7 +20,7 @@ import {
   listPartRouteStepsForPartIds,
   listPartsByAssemblyGroupId,
   listProductionOrders,
-} from "@/lib/data/supabase-data";
+} from "@/lib/data/d1-data";
 import { hasPermission } from "@/lib/rbac/helpers";
 import { getRbacSession } from "@/lib/rbac/session-server";
 

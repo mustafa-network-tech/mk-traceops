@@ -5,7 +5,7 @@ import {
   listProductionOrderLines,
   listProductionOrders,
   listProducts,
-} from "@/lib/data/supabase-data";
+} from "@/lib/data/d1-data";
 import type { Material, ProductionOrder } from "@/lib/types/models";
 
 function normKey(s: string): string {

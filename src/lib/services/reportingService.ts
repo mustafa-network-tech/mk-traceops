@@ -15,7 +15,7 @@ import {
   listProductionOrders,
   listShipmentItems,
   listSuppliers,
-} from "@/lib/data/supabase-data";
+} from "@/lib/data/d1-data";
 import type { RecurringPartReport, ReportFilter } from "@/lib/types/models";
 
 export async function getRecurringPartsReport(): Promise<RecurringPartReport[]> {

@@ -12,7 +12,7 @@ import {
   listCompanies,
   listOperationAssignments,
   listParts,
-} from "@/lib/data/supabase-data";
+} from "@/lib/data/d1-data";
 import { formatDate } from "@/lib/format";
 import { requirePanelModule } from "@/lib/rbac/require-panel-module";
 

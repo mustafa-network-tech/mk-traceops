@@ -47,7 +47,7 @@ export function PanelMobileNav({ allowedHrefs }: { allowedHrefs: string[] }) {
         />
         <Separator className="bg-slate-800" />
         <div className="p-3 text-xs text-slate-500">
-          {brand.slogan} · v1 · Supabase
+          {brand.slogan} · v1 · Cloudflare D1
         </div>
       </SheetContent>
     </Sheet>

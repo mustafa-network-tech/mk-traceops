@@ -4,7 +4,7 @@ import {
   listMaterialCategories,
   listMaterialSupplierRelations,
   listMaterialsByType,
-} from "@/lib/data/supabase-data";
+} from "@/lib/data/d1-data";
 
 export default async function HamMaddelerPage() {
   const [materials, categories, rels] = await Promise.all([

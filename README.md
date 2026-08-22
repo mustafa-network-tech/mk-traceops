@@ -1,6 +1,6 @@
 # mk-traceops
 
-**Malzemenin üretimdeki yolculuğu** — Excel aktarımından sevkiyata kadar iç operasyon paneli (Next.js, mock veri; Supabase hazır mimari).
+**Malzemenin üretimdeki yolculuğu** — Excel aktarımından sevkiyata kadar Cloudflare Workers + D1 üzerinde çalışan iç operasyon paneli.
 
 ## Gereksinimler
 
@@ -27,11 +27,11 @@ Uygulama: [http://localhost:3000](http://localhost:3000) (otomatik yönlendirme:
 
 Şu an uygulama **mock repository** ile çalışır; `.env.local` zorunlu değildir.
 
-İleride Supabase bağlarken:
+Cloudflare D1 kurulumu:
 
 1. Depodaki `.env.example` dosyasını referans alın.
 2. Proje kökünde `.env.local` oluşturun (bu dosya Git’e **eklenmez**).
-3. `NEXT_PUBLIC_SUPABASE_URL` ve `NEXT_PUBLIC_SUPABASE_ANON_KEY` değerlerini doldurun.
+3. `npm run db:migrate:local` ile yerel şemayı uygulayın; remote için `npm run db:migrate:remote` kullanın.
 
 ```bash
 cp .env.example .env.local
@@ -71,7 +71,9 @@ git push -u origin main
 ## Mimari not
 
 - `src/lib/data/seed.ts` — mock veri
-- `src/lib/repositories/` — veri erişimi (Supabase adapter ile değiştirilebilir)
+- `src/lib/d1/repositories/` — parametreli ve tenant-korumalı D1 veri erişimi
+
+Eski Supabase/PostgreSQL migrationları yalnız geri dönüş ve veri eşleme referansı olarak `supabase/migrations` altında korunur; uygulama runtime’ında kullanılmaz.
 - `src/lib/constants/brand.ts` — uygulama adı ve slogan
 
 ## Lisans

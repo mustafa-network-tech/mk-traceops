@@ -1,65 +1,7 @@
+import "server-only";
+import { createId,getDatabase,nowIso } from "@/lib/d1/database";
 import { requireOperationalFactoryId } from "@/lib/data/operational-context";
-import { syncPartsFromImportBatch } from "@/lib/data/import-sync";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { ImportBatchStatus } from "@/lib/types/models";
+import { getRbacSession } from "@/lib/rbac/session-server";
 import type { PreparedImportRow } from "@/lib/services/excelParse";
-
-const INSERT_CHUNK = 300;
-
-export async function persistExcelImport(
-  fileName: string,
-  prepared: PreparedImportRow[],
-): Promise<{ batchId: string }> {
-  const successCount = prepared.filter((p) => p.status === "bekliyor").length;
-  const errorCount = prepared.filter((p) => p.status === "hata").length;
-  const status: ImportBatchStatus =
-    errorCount === 0 ? "tamamlandı" : "kısmi_hata";
-
-  const supabase = await createSupabaseServerClient();
-  const factoryId = await requireOperationalFactoryId();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const { data: batch, error: batchErr } = await supabase
-    .from("import_batches")
-    .insert({
-      file_name: fileName,
-      row_count: prepared.length,
-      success_count: successCount,
-      error_count: errorCount,
-      status,
-      uploaded_by_user_id: user?.id ?? null,
-      factory_id: factoryId,
-    })
-    .select("id")
-    .single();
-
-  if (batchErr) {
-    throw new Error(batchErr.message);
-  }
-  if (!batch?.id) {
-    throw new Error("Aktarım kaydı oluşturulamadı.");
-  }
-
-  const batchId = batch.id as string;
-
-  for (let i = 0; i < prepared.length; i += INSERT_CHUNK) {
-    const slice = prepared.slice(i, i + INSERT_CHUNK);
-    const rows = slice.map((p) => ({
-      batch_id: batchId,
-      row_index: p.rowIndex,
-      raw_data: p.rawData,
-      status: p.status,
-      message: p.message ?? null,
-    }));
-    const { error: rowErr } = await supabase.from("import_rows").insert(rows);
-    if (rowErr) {
-      throw new Error(rowErr.message);
-    }
-  }
-
-  await syncPartsFromImportBatch(supabase, batchId);
-
-  return { batchId };
-}
+import { syncPartsFromImportBatch } from "@/lib/data/import-sync";
+export async function persistExcelImport(fileName:string,prepared:PreparedImportRow[]):Promise<{batchId:string}>{const factoryId=await requireOperationalFactoryId();const ctx=await getRbacSession();const batchId=createId(),now=nowIso();const success=prepared.filter(x=>x.status!=="hata").length,errors=prepared.length-success;const statements:D1PreparedStatement[]=[getDatabase().prepare("INSERT INTO import_batches (id,factory_id,file_name,uploaded_by_user_id,row_count,success_count,error_count,status,created_at) VALUES (?,?,?,?,?,?,?,?,?)").bind(batchId,factoryId,fileName,ctx?.user.id??null,prepared.length,success,errors,errors?"kısmi_hata":"tamamlandı",now)];for(const row of prepared){statements.push(getDatabase().prepare("INSERT INTO import_rows (id,batch_id,row_index,raw_data,status,message,created_at) VALUES (?,?,?,?,?,?,?)").bind(createId(),batchId,row.rowIndex,JSON.stringify(row.rawData),row.status,row.message??null,now));}for(let i=0;i<statements.length;i+=100)await getDatabase().batch(statements.slice(i,i+100));await syncPartsFromImportBatch(batchId,factoryId);return{batchId};}

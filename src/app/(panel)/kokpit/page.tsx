@@ -14,7 +14,7 @@ import {
   listLocations,
   listMaterials,
   listSuppliers,
-} from "@/lib/data/supabase-data";
+} from "@/lib/data/d1-data";
 import { formatDateTime, formatNumber } from "@/lib/format";
 import { hasPermission } from "@/lib/rbac/helpers";
 import { getRbacSession } from "@/lib/rbac/session-server";
@@ -69,7 +69,7 @@ export default async function KokpitPage() {
     <div>
       <PageHeader
         title="Kokpit"
-        description="Operasyon akışının özeti: Excel aktarımından sevkiyata kadar modüllerle uyumlu metrikler (Supabase)."
+        description="Operasyon akışının özeti: Excel aktarımından sevkiyata kadar D1 metrikleri."
       />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">

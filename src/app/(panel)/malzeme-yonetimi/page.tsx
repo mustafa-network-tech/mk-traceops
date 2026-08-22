@@ -5,7 +5,7 @@ import {
   listMaterialSupplierRelations,
   listMaterials,
   sumPartQuantitiesByMaterialId,
-} from "@/lib/data/supabase-data";
+} from "@/lib/data/d1-data";
 
 export default async function MalzemeYonetimiPage() {
   const [materials, categories, rels, demandByMat] = await Promise.all([

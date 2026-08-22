@@ -1,5 +1,5 @@
-import { mapProductionOrder } from "@/lib/data/supabase-data";
-import { createSupabaseForPlatformAdminReads } from "@/lib/data/rbac-supabase";
+import { mapProductionOrder } from "@/lib/data/d1-data";
+import { createD1ForPlatformAdminReads } from "@/lib/data/rbac-data";
 import type {
   ImportBatch,
   ImportBatchStatus,
@@ -89,9 +89,9 @@ export type PlatformImportBatchRow = ImportBatch & {
 };
 
 export async function listPlatformImportBatches(): Promise<PlatformImportBatchRow[]> {
-  const supabase = await createSupabaseForPlatformAdminReads();
-  if (!supabase) return [];
-  const { data, error } = await supabase
+  const repository = await createD1ForPlatformAdminReads();
+  if (!repository) return [];
+  const { data, error } = await repository
     .from("import_batches")
     .select(
       "id, file_name, uploaded_by_user_id, row_count, success_count, error_count, status, notes, created_at, factory_id, factories ( name, slug )",
@@ -116,9 +116,9 @@ export async function listPlatformImportBatches(): Promise<PlatformImportBatchRo
 export async function getPlatformImportBatch(
   id: string,
 ): Promise<PlatformImportBatchRow | null> {
-  const supabase = await createSupabaseForPlatformAdminReads();
-  if (!supabase) return null;
-  const { data, error } = await supabase
+  const repository = await createD1ForPlatformAdminReads();
+  if (!repository) return null;
+  const { data, error } = await repository
     .from("import_batches")
     .select(
       "id, file_name, uploaded_by_user_id, row_count, success_count, error_count, status, notes, created_at, factory_id, factories ( name, slug )",
@@ -140,9 +140,9 @@ export async function getPlatformImportBatch(
 }
 
 export async function listPlatformImportRows(batchId: string): Promise<ImportRow[]> {
-  const supabase = await createSupabaseForPlatformAdminReads();
-  if (!supabase) return [];
-  const { data, error } = await supabase
+  const repository = await createD1ForPlatformAdminReads();
+  if (!repository) return [];
+  const { data, error } = await repository
     .from("import_rows")
     .select(
       "id, batch_id, row_index, raw_data, status, message, linked_part_id",
@@ -191,9 +191,9 @@ export type PlatformStockMovementRow = {
 export async function listPlatformStockMovements(
   limit = 400,
 ): Promise<PlatformStockMovementRow[]> {
-  const supabase = await createSupabaseForPlatformAdminReads();
-  if (!supabase) return [];
-  const { data, error } = await supabase
+  const repository = await createD1ForPlatformAdminReads();
+  if (!repository) return [];
+  const { data, error } = await repository
     .from("stock_movements")
     .select(
       "id, material_id, type, quantity, unit, occurred_at, location_id, production_order_id, note, factory_id, factories ( name, slug ), materials ( code, name ), locations ( code, name )",
@@ -247,9 +247,9 @@ export type PlatformPartSummary = { id: string; partCode: string; description: s
 export async function listPlatformPartsByImportBatch(
   batchId: string,
 ): Promise<PlatformPartSummary[]> {
-  const supabase = await createSupabaseForPlatformAdminReads();
-  if (!supabase) return [];
-  const { data, error } = await supabase
+  const repository = await createD1ForPlatformAdminReads();
+  if (!repository) return [];
+  const { data, error } = await repository
     .from("parts")
     .select("id, part_code, description")
     .eq("import_batch_id", batchId)
@@ -270,9 +270,9 @@ export async function listPlatformPartsByImportBatch(
 export async function listPlatformProductionOrders(
   limit = 150,
 ): Promise<PlatformProductionOrderRow[]> {
-  const supabase = await createSupabaseForPlatformAdminReads();
-  if (!supabase) return [];
-  const { data, error } = await supabase
+  const repository = await createD1ForPlatformAdminReads();
+  if (!repository) return [];
+  const { data, error } = await repository
     .from("production_orders")
     .select(
       "*, factories ( name, slug ), products ( code, name )",

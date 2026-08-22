@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import { listPlatformImportBatches } from "@/lib/data/platform-operational";
 import { formatDateTime } from "@/lib/format";
-import { isSupabaseAdminConfigured } from "@/lib/supabase/admin";
+import { isD1Configured } from "@/lib/d1/status";
 
 export const dynamic = "force-dynamic";
 
@@ -51,11 +51,11 @@ export default async function PlatformExcelAktarimlarPage() {
                   <p className="font-medium text-slate-800">Henüz aktarım yok veya liste boş döndü.</p>
                   <p className="mt-2 max-w-2xl">
                     Fabrikalar Excel yükledikçe burada görünür. Veri varken boşsa sunucuya{" "}
-                    <code className="rounded bg-slate-100 px-1 text-xs">SUPABASE_SERVICE_ROLE_KEY</code>{" "}
-                    ekleyin (platform okumaları RLS&apos;yi aşar).
-                    {!isSupabaseAdminConfigured() ? (
+                    <code className="rounded bg-slate-100 px-1 text-xs">DB</code>{" "}
+                    binding&apos;ini doğrulayın.
+                    {!isD1Configured() ? (
                       <span className="mt-1 block text-amber-800">
-                        Service role anahtarı şu an yapılandırılmamış.
+                        D1 binding şu an yapılandırılmamış.
                       </span>
                     ) : null}
                   </p>

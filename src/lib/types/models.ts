@@ -1,4 +1,4 @@
-/** Tüm alan kimlikleri string; Supabase UUID ile uyumludur. */
+/** Tüm alan kimlikleri Workers crypto.randomUUID ile üretilen string değerlerdir. */
 
 export interface Company {
   id: string;
