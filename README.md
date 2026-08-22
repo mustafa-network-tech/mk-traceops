@@ -74,6 +74,14 @@ git push -u origin main
 - `src/lib/d1/repositories/` — parametreli ve tenant-korumalı D1 veri erişimi
 
 Eski Supabase/PostgreSQL migrationları yalnız geri dönüş ve veri eşleme referansı olarak `supabase/migrations` altında korunur; uygulama runtime’ında kullanılmaz.
+
+İlk platform yöneticisini oluşturmak için önce D1 migrationlarını uygulayın, ardından interaktif komutu çalıştırın:
+
+```powershell
+npm run admin:create:remote
+```
+
+Yerel D1 için `npm run admin:create:local` kullanılır. Şifre terminalde gizli alınır ve komut geçmişine yazılmaz.
 - `src/lib/constants/brand.ts` — uygulama adı ve slogan
 
 ## Lisans
